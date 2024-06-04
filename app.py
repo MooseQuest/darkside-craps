@@ -1,11 +1,16 @@
 import random
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
+
+client = MongoClient('mongodb://localhost:27017/')
+db = client.craps_game
 
 # Function to simulate a dice roll
 def roll_dice():
@@ -13,24 +18,20 @@ def roll_dice():
 
 # Initialize game state
 def init_game(initial_bankroll):
-    session['initial_bankroll'] = initial_bankroll
-    session['bankroll'] = initial_bankroll
-    session['current_bets'] = [{'type': 'Don\'t Pass', 'bet': 25 if initial_bankroll == 1000 else 50, 'potential_win': 25 if initial_bankroll == 1000 else 50}]
-    session['established_points'] = []
-    session['results'] = []
-    session['roll_count'] = 0
-    session['points_hit'] = 0
-    session['wins'] = 0
-    session['losses'] = 0
-    session['strikes'] = 0
-
-# Function to simulate a single roll in the game
-def game_roll():
-    roll = roll_dice()
-    roll_sum = sum(roll)
-    session['results'].append(roll_sum)
-    session['roll_count'] += 1
-    return roll_sum
+    game_data = {
+        'initial_bankroll': initial_bankroll,
+        'bankroll': initial_bankroll,
+        'current_bets': [{'type': 'Don\'t Pass', 'bet': 25 if initial_bankroll == 1000 else 50, 'potential_win': 25 if initial_bankroll == 1000 else 50}],
+        'established_points': [],
+        'results': [],
+        'roll_count': 0,
+        'points_hit': 0,
+        'wins': 0,
+        'losses': 0,
+        'strikes': 0
+    }
+    game_id = db.games.insert_one(game_data).inserted_id
+    return game_id
 
 @app.route('/')
 def home():
@@ -39,151 +40,180 @@ def home():
 @app.route('/start', methods=['POST'])
 def start_game():
     initial_bankroll = int(request.form['bankroll'])
-    init_game(initial_bankroll)
-    session['bankroll'] -= 25 if initial_bankroll == 1000 else 50  # Initial bet on Don't Pass
+    game_id = init_game(initial_bankroll)
+    game_data = db.games.find_one({'_id': game_id})
+    session['game_id'] = str(game_id)
+    session['initial_bankroll'] = initial_bankroll
     return jsonify({
         'status': 'Game started',
         'initial_bankroll': initial_bankroll,
-        'current_bets': session['current_bets'],
-        'bankroll': session['bankroll']
+        'current_bets': game_data['current_bets'],
+        'bankroll': game_data['bankroll']
     })
 
 @app.route('/roll', methods=['POST'])
 def roll():
-    roll_sum = game_roll()
-    initial_bet = 25 if session['initial_bankroll'] == 1000 else 50
+    game_id = ObjectId(session['game_id'])
+    game_data = db.games.find_one({'_id': game_id})
+    
+    dice_roll = roll_dice()
+    roll_sum = sum(dice_roll)
+    initial_bet = 25 if game_data['initial_bankroll'] == 1000 else 50
     response = {
         'status': 'continue',
         'roll_sum': roll_sum,
-        'current_bets': session['current_bets'],
-        'bankroll': session['bankroll'],
-        'results': session['results'],
-        'roll_count': session['roll_count'],
-        'wins': session['wins'],
-        'losses': session['losses']
+        'dice_roll': dice_roll,
+        'current_bets': game_data['current_bets'],
+        'bankroll': game_data['bankroll'],
+        'results': game_data['results'],
+        'roll_count': game_data['roll_count'],
+        'wins': game_data['wins'],
+        'losses': game_data['losses']
     }
 
-    if len(session['established_points']) < 4:
+    if len(game_data['established_points']) < 4:
         if roll_sum in [7, 11]:
-            session['bankroll'] -= initial_bet
-            session['losses'] += initial_bet
+            game_data['bankroll'] -= initial_bet
+            game_data['losses'] += initial_bet
             response['status'] = 'Seven or Eleven rolled, you lost the Don\'t Pass bet'
         elif roll_sum in [2, 3]:
-            session['bankroll'] += initial_bet
-            session['wins'] += initial_bet
+            game_data['bankroll'] += initial_bet
+            game_data['wins'] += initial_bet
             response['status'] = 'Two or Three rolled, you won the Don\'t Pass bet'
         elif roll_sum == 12:
             response['status'] = 'Twelve rolled, it\'s a push'
         else:
-            session['established_points'].append(roll_sum)
+            game_data['established_points'].append(roll_sum)
             if roll_sum in [4, 10]:
-                session['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 90 if session['initial_bankroll'] == 1000 else 100, 'potential_win': 45 if session['initial_bankroll'] == 1000 else 100})
+                game_data['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 90 if game_data['initial_bankroll'] == 1000 else 100, 'potential_win': 45 if game_data['initial_bankroll'] == 1000 else 100})
             elif roll_sum in [5, 9]:
-                session['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 60 if session['initial_bankroll'] == 1000 else 75, 'potential_win': 40 if session['initial_bankroll'] == 1000 else 75})
+                game_data['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 60 if game_data['initial_bankroll'] == 1000 else 75, 'potential_win': 40 if game_data['initial_bankroll'] == 1000 else 75})
             elif roll_sum in [6, 8]:
-                session['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 30 if session['initial_bankroll'] == 1000 else 60, 'potential_win': 25 if session['initial_bankroll'] == 1000 else 60})
-            if len(session['established_points']) < 4:
-                session['current_bets'].append({'type': 'Don\'t Come', 'bet': initial_bet, 'potential_win': initial_bet})
-                session['bankroll'] -= initial_bet
+                game_data['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 30 if game_data['initial_bankroll'] == 1000 else 60, 'potential_win': 25 if game_data['initial_bankroll'] == 1000 else 60})
+            if len(game_data['established_points']) < 4:
+                game_data['current_bets'].append({'type': 'Don\'t Come', 'bet': initial_bet, 'potential_win': initial_bet})
+                game_data['bankroll'] -= initial_bet
             response['status'] = 'Point established'
     else:
         if roll_sum == 7:
-            total_wins = sum(bet['potential_win'] for bet in session['current_bets'])
-            session['bankroll'] += total_wins
-            session['wins'] += total_wins
+            total_wins = sum(bet['potential_win'] for bet in game_data['current_bets'])
+            game_data['bankroll'] += total_wins
+            game_data['wins'] += total_wins
             response['status'] = 'Seven rolled, you won on all points'
             response['summary'] = {
-                'initial_bankroll': session['initial_bankroll'],
-                'final_bankroll': session['bankroll'],
-                'roll_count': session['roll_count'],
-                'results': session['results'],
-                'points_established': len(session['established_points']),
-                'points_hit': session['points_hit'],
-                'wins': session['wins'],
-                'losses': session['losses']
+                'initial_bankroll': game_data['initial_bankroll'],
+                'final_bankroll': game_data['bankroll'],
+                'roll_count': game_data['roll_count'],
+                'results': game_data['results'],
+                'points_established': len(game_data['established_points']),
+                'points_hit': game_data['points_hit'],
+                'wins': game_data['wins'],
+                'losses': game_data['losses']
             }
-        elif roll_sum in session['established_points']:
-            session['bankroll'] -= initial_bet
-            session['losses'] += initial_bet
-            session['points_hit'] += 1
+        elif roll_sum in game_data['established_points']:
+            game_data['bankroll'] -= initial_bet
+            game_data['losses'] += initial_bet
+            game_data['points_hit'] += 1
             response['status'] = 'Point hit, you lost a bet'
-            if session['points_hit'] >= 3:
+            if game_data['points_hit'] >= 3:
                 response['status'] += '. Three strikes, wait for a 7 before betting again.'
-                session['current_bets'] = []
+                game_data['current_bets'] = []
         else:
             response['status'] = 'continue'
 
-    response['bankroll'] = session['bankroll']
-    response['wins'] = session['wins']
-    response['losses'] = session['losses']
+    game_data['results'].append(dice_roll)
+    game_data['roll_count'] += 1
+    db.games.update_one({'_id': game_id}, {'$set': game_data})
+
+    response['bankroll'] = game_data['bankroll']
+    response['wins'] = game_data['wins']
+    response['losses'] = game_data['losses']
 
     return jsonify(response)
 
 @app.route('/take_action', methods=['POST'])
 def take_action():
     action = request.form['action']
+    game_id = ObjectId(session['game_id'])
+    game_data = db.games.find_one({'_id': game_id})
+    
     response = {
         'status': 'continue',
-        'current_bets': session['current_bets'],
-        'bankroll': session['bankroll'],
-        'results': session['results'],
-        'roll_count': session['roll_count'],
-        'wins': session['wins'],
-        'losses': session['losses']
+        'current_bets': game_data['current_bets'],
+        'bankroll': game_data['bankroll'],
+        'results': game_data['results'],
+        'roll_count': game_data['roll_count'],
+        'wins': game_data['wins'],
+        'losses': game_data['losses']
     }
 
     if action == 'continue':
-        roll_sum = game_roll()
+        dice_roll = roll_dice()
+        roll_sum = sum(dice_roll)
         response['roll_sum'] = roll_sum
-        initial_bet = 25 if session['initial_bankroll'] == 1000 else 50
+        response['dice_roll'] = dice_roll
+        initial_bet = 25 if game_data['initial_bankroll'] == 1000 else 50
 
         if roll_sum == 7:
-            total_wins = sum(bet['potential_win'] for bet in session['current_bets'])
-            session['bankroll'] += total_wins
-            session['wins'] += total_wins
+            total_wins = sum(bet['potential_win'] for bet in game_data['current_bets'])
+            game_data['bankroll'] += total_wins
+            game_data['wins'] += total_wins
             response['status'] = 'Seven rolled, you won on all points'
             response['summary'] = {
-                'initial_bankroll': session['initial_bankroll'],
-                'final_bankroll': session['bankroll'],
-                'roll_count': session['roll_count'],
-                'results': session['results'],
-                'points_established': len(session['established_points']),
-                'points_hit': session['points_hit'],
-                'wins': session['wins'],
-                'losses': session['losses']
+                'initial_bankroll': game_data['initial_bankroll'],
+                'final_bankroll': game_data['bankroll'],
+                'roll_count': game_data['roll_count'],
+                'results': game_data['results'],
+                'points_established': len(game_data['established_points']),
+                'points_hit': game_data['points_hit'],
+                'wins': game_data['wins'],
+                'losses': game_data['losses']
             }
-        elif roll_sum in session['established_points']:
-            session['bankroll'] -= initial_bet
-            session['losses'] += initial_bet
-            session['points_hit'] += 1
+        elif roll_sum in game_data['established_points']:
+            game_data['bankroll'] -= initial_bet
+            game_data['losses'] += initial_bet
+            game_data['points_hit'] += 1
             response['status'] = 'Point hit, you lost a bet'
-            if session['points_hit'] >= 3:
+            if game_data['points_hit'] >= 3:
                 response['status'] += '. Three strikes, wait for a 7 before betting again.'
-                session['current_bets'] = []
+                game_data['current_bets'] = []
         else:
             response['status'] = 'continue'
-    elif action == 'no_bet':
-        roll_sum = game_roll()
-        response['roll_sum'] = roll_sum
-        response['status'] = 'No bet'
 
-    response['bankroll'] = session['bankroll']
-    response['wins'] = session['wins']
-    response['losses'] = session['losses']
+        game_data['results'].append(dice_roll)
+        game_data['roll_count'] += 1
+        db.games.update_one({'_id': game_id}, {'$set': game_data})
+
+    elif action == 'no_bet':
+        dice_roll = roll_dice()
+        roll_sum = sum(dice_roll)
+        response['roll_sum'] = roll_sum
+        response['dice_roll'] = dice_roll
+        response['status'] = 'No bet'
+        game_data['results'].append(dice_roll)
+        game_data['roll_count'] += 1
+        db.games.update_one({'_id': game_id}, {'$set': game_data})
+
+    response['bankroll'] = game_data['bankroll']
+    response['wins'] = game_data['wins']
+    response['losses'] = game_data['losses']
 
     return jsonify(response)
 
 @app.route('/summary', methods=['GET'])
 def summary():
+    game_id = ObjectId(session['game_id'])
+    game_data = db.games.find_one({'_id': game_id})
+    
     return jsonify({
-        'initial_bankroll': session.get('initial_bankroll'),
-        'final_bankroll': session.get('bankroll'),
-        'roll_count': session.get('roll_count'),
-        'results': session.get('results'),
-        'points_established': len(session.get('established_points', [])),
-        'points_hit': session.get('points_hit', 0),
-        'wins': session.get('wins', 0),
-        'losses': session.get('losses', 0)
+        'initial_bankroll': game_data['initial_bankroll'],
+        'final_bankroll': game_data['bankroll'],
+        'roll_count': game_data['roll_count'],
+        'results': game_data['results'],
+        'points_established': len(game_data['established_points']),
+        'points_hit': game_data['points_hit'],
+        'wins': game_data['wins'],
+        'losses': game_data['losses']
     })
 
 if __name__ == '__main__':

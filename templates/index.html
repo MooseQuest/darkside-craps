@@ -31,7 +31,7 @@
             </div>
             <div id="totals" class="mt-4">
                 <p>Current Bet Amount: <span id="current-bets"></span></p>
-                <p>Bankroll: <span id="bankroll"></span></p>
+                <p>Bankroll: <span id="current-bankroll"></span></p>
                 <p>Wins: <span id="wins"></span></p>
                 <p>Losses: <span id="losses"></span></p>
             </div>
@@ -57,7 +57,7 @@
                         $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
                         $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
                         $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                        $('#bankroll').text(response.bankroll);
+                        $('#current-bankroll').text(response.bankroll);
                         $('#wins').text(0);
                         $('#losses').text(0);
                     }
@@ -69,12 +69,12 @@
                     url: '/roll',
                     method: 'POST',
                     success: function(response) {
-                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.roll_sum + '</p>');
+                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.dice_roll.join(',') + '</p>');
                         if (response.status !== 'continue') {
                             $('#summary-results').html('Initial Bankroll: ' + response.summary.initial_bankroll + 
                                                        '\nFinal Bankroll: ' + response.summary.final_bankroll + 
                                                        '\nRoll Count: ' + response.summary.roll_count + 
-                                                       '\nResults: ' + response.summary.results.join(', ') + 
+                                                       '\nResults: ' + response.summary.results.map(dice => dice.join(',')).join(' | ') + 
                                                        '\nPoints Established: ' + response.summary.points_established + 
                                                        '\nPoints Hit: ' + response.summary.points_hit + 
                                                        '\nWins: ' + response.summary.wins + 
@@ -83,7 +83,7 @@
                             $('#game-area').hide();
                         } else {
                             $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                            $('#bankroll').text(response.bankroll);
+                            $('#current-bankroll').text(response.bankroll);
                             $('#wins').text(response.wins);
                             $('#losses').text(response.losses);
                             $('#actions').show();
@@ -98,12 +98,12 @@
                     method: 'POST',
                     data: { action: 'continue' },
                     success: function(response) {
-                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.roll_sum + '</p>');
+                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.dice_roll.join(',') + '</p>');
                         if (response.status !== 'continue') {
                             $('#summary-results').html('Initial Bankroll: ' + response.summary.initial_bankroll + 
                                                        '\nFinal Bankroll: ' + response.summary.final_bankroll + 
                                                        '\nRoll Count: ' + response.summary.roll_count + 
-                                                       '\nResults: ' + response.summary.results.join(', ') + 
+                                                       '\nResults: ' + response.summary.results.map(dice => dice.join(',')).join(' | ') + 
                                                        '\nPoints Established: ' + response.summary.points_established + 
                                                        '\nPoints Hit: ' + response.summary.points_hit + 
                                                        '\nWins: ' + response.summary.wins + 
@@ -112,7 +112,7 @@
                             $('#game-area').hide();
                         } else {
                             $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                            $('#bankroll').text(response.bankroll);
+                            $('#current-bankroll').text(response.bankroll);
                             $('#wins').text(response.wins);
                             $('#losses').text(response.losses);
                             $('#actions').show();
@@ -127,12 +127,12 @@
                     method: 'POST',
                     data: { action: 'no_bet' },
                     success: function(response) {
-                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.roll_sum + '</p>');
+                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.dice_roll.join(',') + '</p>');
                         if (response.status !== 'continue') {
                             $('#summary-results').html('Initial Bankroll: ' + response.summary.initial_bankroll + 
                                                        '\nFinal Bankroll: ' + response.summary.final_bankroll + 
                                                        '\nRoll Count: ' + response.summary.roll_count + 
-                                                       '\nResults: ' + response.summary.results.join(', ') + 
+                                                       '\nResults: ' + response.summary.results.map(dice => dice.join(',')).join(' | ') + 
                                                        '\nPoints Established: ' + response.summary.points_established + 
                                                        '\nPoints Hit: ' + response.summary.points_hit + 
                                                        '\nWins: ' + response.summary.wins + 
@@ -141,7 +141,7 @@
                             $('#game-area').hide();
                         } else {
                             $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                            $('#bankroll').text(response.bankroll);
+                            $('#current-bankroll').text(response.bankroll);
                             $('#wins').text(response.wins);
                             $('#losses').text(response.losses);
                             $('#actions').show();
@@ -156,11 +156,23 @@
             });
 
             $('#new-game-button').on('click', function() {
-                $('#summary').hide();
-                $('#start-form').show();
-                $('#game-area').hide();
-                $('#results').html('');
-                $('#actions').hide();
+                $.ajax({
+                    url: '/summary',
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.final_bankroll <= 0.5 * response.initial_bankroll) {
+                            alert('Walk away: Your bankroll is less than 50% of the initial bankroll.');
+                        } else if (response.final_bankroll >= 1.2 * response.initial_bankroll) {
+                            alert('Walk away: Your bankroll is more than 20% above the initial bankroll.');
+                        } else {
+                            $('#summary').hide();
+                            $('#start-form').show();
+                            $('#game-area').hide();
+                            $('#results').html('');
+                            $('#actions').hide();
+                        }
+                    }
+                });
             });
         });
     </script>
