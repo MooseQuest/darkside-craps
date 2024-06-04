@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Craps Simulation</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <!-- Ensure you're using the full version of jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mt-5">Craps Strategy Simulation</h1>
+        <form id="simulation-form">
+            <div class="form-group">
+                <label for="bankroll">Initial Bankroll:</label>
+                <input type="number" class="form-control" id="bankroll" name="bankroll" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Run Simulation</button>
+        </form>
+        <div id="results" class="mt-4"></div>
+    </div>
+    <script>
+        $(document).ready(function() {
+            $('#simulation-form').on('submit', function(event) {
+                event.preventDefault();
+                $.ajax({
+                    url: '/simulate',
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        $('#results').html('<h3>Simulation Results</h3><pre>' + JSON.stringify(response, null, 2) + '</pre>');
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        $('#results').html('<h3>Error</h3><pre>' + textStatus + ': ' + errorThrown + '</pre>');
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
