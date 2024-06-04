@@ -1,0 +1,20 @@
+# macOS system files
+.DS_Store
+
+# Python virtual environments
+venv/
+env/
+
+# Compiled Python files
+*.pyc
+__pycache__/
+
+# Logs
+*.log
+
+# IDE files
+.idea/
+.vscode/
+
+# Dependency directories
+node_modules/
