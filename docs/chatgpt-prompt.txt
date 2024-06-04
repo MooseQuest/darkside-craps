@@ -1,0 +1,1 @@
+I have a craps strategy that I need rewritten with a flow chart and tables showing the payouts. Be sure to use pictures or icons of dice to represent the dice outcome. In each step of the play indicate the payout or loss based on a possible dice roll.
