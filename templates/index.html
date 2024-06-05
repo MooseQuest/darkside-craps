@@ -58,14 +58,19 @@
         <div id="game-area" class="mt-4" style="display:none;">
             <h3>Game in Progress</h3>
             <div id="initial-bet"></div>
-            <button id="roll-button" class="btn btn-secondary">Roll Dice</button>
+            <form id="roll-form">
+                <div class="form-group">
+                    <label>Bet Choice:</label><br>
+                    <input type="radio" id="bet" name="bet_choice" value="bet" checked>
+                    <label for="bet">Bet</label><br>
+                    <input type="radio" id="no_bet" name="bet_choice" value="no_bet">
+                    <label for="no_bet">No Bet</label>
+                </div>
+                <button type="submit" class="btn btn-secondary">Roll Dice</button>
+            </form>
             <div class="container-flex">
                 <div class="left">
                     <div id="results" class="mt-4"></div>
-                    <div id="actions" class="mt-4" style="display:none;">
-                        <button id="continue-button" class="btn btn-success">Continue</button>
-                        <button id="no-bet-button" class="btn btn-warning">No Bet</button>
-                    </div>
                     <div id="totals" class="mt-4">
                         <p>Current Bet Amount: <span id="current-bets"></span></p>
                         <p>Bankroll: <span id="current-bankroll"></span></p>
@@ -115,10 +120,12 @@
                 });
             });
 
-            $('#roll-button').on('click', function() {
+            $('#roll-form').on('submit', function(event) {
+                event.preventDefault();
                 $.ajax({
                     url: '/roll',
                     method: 'POST',
+                    data: $(this).serialize(),
                     success: function(response) {
                         $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.dice_roll.join(',') + ' (Total: ' + response.roll_sum + ')</p>');
                         $('#next-action-message').text(response.status);

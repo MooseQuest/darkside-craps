@@ -61,6 +61,7 @@ def roll():
     dice_roll = roll_dice()
     roll_sum = sum(dice_roll)
     initial_bet = 25 if game_data['initial_bankroll'] == 1000 else 50
+    bet_choice = request.form['bet_choice']
     response = {
         'status': 'continue',
         'roll_sum': roll_sum,
@@ -128,14 +129,7 @@ def roll():
                 response['status'] += ' Three strikes, wait for a 7 before betting again.'
                 game_data['current_bets'] = []
         else:
-            if roll_sum in [4, 10]:
-                game_data['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 90 if game_data['initial_bankroll'] == 1000 else 100, 'potential_win': 45 if game_data['initial_bankroll'] == 1000 else 100})
-            elif roll_sum in [5, 9]:
-                game_data['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 60 if game_data['initial_bankroll'] == 1000 else 75, 'potential_win': 40 if game_data['initial_bankroll'] == 1000 else 75})
-            elif roll_sum in [6, 8]:
-                game_data['current_bets'].append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 30 if game_data['initial_bankroll'] == 1000 else 60, 'potential_win': 25 if game_data['initial_bankroll'] == 1000 else 60})
-            game_data['established_points'].append(roll_sum)
-            response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
+            response['status'] = 'No bet'
 
     game_data['results'].append(dice_roll)
     game_data['roll_count'] += 1
