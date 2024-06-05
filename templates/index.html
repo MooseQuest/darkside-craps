@@ -66,6 +66,7 @@
                     <input type="radio" id="no_bet" name="bet_choice" value="no_bet">
                     <label for="no_bet">No Bet</label>
                 </div>
+                <div id="possible-outcomes" class="mb-3"></div>
                 <button type="submit" class="btn btn-secondary">Roll Dice</button>
             </form>
             <div class="container-flex">
@@ -101,6 +102,17 @@
     </div>
     <script>
         $(document).ready(function() {
+            function updatePossibleOutcomes() {
+                const betChoice = $('input[name="bet_choice"]:checked').val();
+                let outcomes = '';
+                if (betChoice === 'bet') {
+                    outcomes = '<p>If 7 or 11 is rolled, you lose your Don\'t Pass bet. If 2 or 3 is rolled, you win your Don\'t Pass bet. If 12 is rolled, it\'s a push.</p>';
+                } else {
+                    outcomes = '<p>No bet is placed. You only roll the dice and see the outcome.</p>';
+                }
+                $('#possible-outcomes').html(outcomes);
+            }
+
             $('#start-form').on('submit', function(event) {
                 event.preventDefault();
                 $.ajax({
@@ -114,10 +126,14 @@
                         $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
                         $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
                         $('#current-bankroll').text(response.bankroll);
-                        $('#next-action-message').text(response.status);
                         $('#strikes').text(0);
+                        updatePossibleOutcomes();
                     }
                 });
+            });
+
+            $('input[name="bet_choice"]').on('change', function() {
+                updatePossibleOutcomes();
             });
 
             $('#roll-form').on('submit', function(event) {
