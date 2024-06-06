@@ -130,6 +130,7 @@
                         $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
                         $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
                         $('#current-bankroll').text(response.bankroll);
+                        $('#next-action-message').text(response.status);
                         $('#strikes').text(0);
                         updatePossibleOutcomes();
                     }
