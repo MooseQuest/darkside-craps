@@ -1,10 +1,19 @@
 import random
 import logging
+import os
+from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+
+load_dotenv()  # Load environment variables from .env file
+
+MONGO_URI = os.getenv('MONGO_URI')
+
+client = MongoClient(MONGO_URI)
+db = client.craps_game
 
 # Set up logging
 logging.basicConfig(filename='craps_game.log', level=logging.INFO, 
