@@ -86,6 +86,10 @@
                         <label>Next Action:</label>
                         <div id="next-action-message"></div>
                     </div>
+                    <div id="next-bet" class="next-action">
+                        <label>Next Bet:</label>
+                        <div id="next-bet-message"></div>
+                    </div>
                 </div>
                 <div class="right">
                     <div id="craps-table" class="craps-table mt-4">
@@ -113,6 +117,7 @@
             socket.on('update_game_state', function(data) {
                 $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
                 $('#next-action-message').text(data.status);
+                $('#next-bet-message').text(data.next_bet);
                 $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
                 $('#current-bankroll').text(data.bankroll);
                 $('#total-wagered').text(data.total_wagered);
@@ -171,6 +176,7 @@
                         $('#total-wagered').text(response.total_wagered);
                         $('#current-bankroll').text(response.bankroll);
                         $('#next-action-message').text(response.status);
+                        $('#next-bet-message').text(response.next_bet);
                         $('#strikes').text(0);
                         updatePossibleOutcomes();
                     }

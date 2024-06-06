@@ -1,5 +1,5 @@
 import random
-import logging  # Import the logging module
+import logging
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 from flask_socketio import SocketIO, emit
@@ -52,6 +52,7 @@ class CrapsStateMachine:
         dice_roll = roll_dice()
         roll_sum = sum(dice_roll)
         initial_bet = 25 if self.initial_bankroll == 1000 else 50
+        lay_bet, lay_message = self._get_lay_bet(roll_sum)
         response = {
             'status': 'continue',
             'roll_sum': roll_sum,
@@ -64,7 +65,8 @@ class CrapsStateMachine:
             'losses': self.losses,
             'established_points': self.established_points,
             'strikes': self.strikes,
-            'total_wagered': self.total_wagered
+            'total_wagered': self.total_wagered,
+            'next_bet': lay_message
         }
 
         if bet_choice == 'bet':
@@ -103,6 +105,7 @@ class CrapsStateMachine:
         dice_roll = roll_dice()
         roll_sum = sum(dice_roll)
         initial_bet = 25 if self.initial_bankroll == 1000 else 50
+        lay_bet, lay_message = self._get_lay_bet(roll_sum)
         response = {
             'status': 'continue',
             'roll_sum': roll_sum,
@@ -115,7 +118,8 @@ class CrapsStateMachine:
             'losses': self.losses,
             'established_points': self.established_points,
             'strikes': self.strikes,
-            'total_wagered': self.total_wagered
+            'total_wagered': self.total_wagered,
+            'next_bet': lay_message
         }
 
         if bet_choice == 'bet':
@@ -188,6 +192,16 @@ class CrapsStateMachine:
             self.current_bets.append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 30 if self.initial_bankroll == 1000 else 60, 'potential_win': 25 if self.initial_bankroll == 1000 else 60})
         logging.info(f'Placed odds bet: Point {roll_sum}, Bet {initial_bet}')
 
+    def _get_lay_bet(self, roll_sum):
+        if roll_sum in [4, 10]:
+            return (90 if self.initial_bankroll == 1000 else 100), 'Lay $90 if bankroll is $1000 or $100 if bankroll is $2000 on 4 or 10'
+        elif roll_sum in [5, 9]:
+            return (60 if self.initial_bankroll == 1000 else 75), 'Lay $60 if bankroll is $1000 or $75 if bankroll is $2000 on 5 or 9'
+        elif roll_sum in [6, 8]:
+            return (30 if self.initial_bankroll == 1000 else 60), 'Lay $30 if bankroll is $1000 or $60 if bankroll is $2000 on 6 or 8'
+        else:
+            return 0, 'No lay bet'
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -205,7 +219,7 @@ def start_game():
         'bankroll': game.bankroll,
         'total_wagered': game.total_wagered
     })
-    logging.info(f'Game started with bankroll: {initial_bankroll}')
+    logging.info(f'Game started with bankroll: {initial_bankroll}, session: {session}')
     return jsonify({
         'status': 'Game started',
         'initial_bankroll': initial_bankroll,
@@ -227,7 +241,7 @@ def roll():
     response = game.handle_event('roll', bet_choice)
     db.games.update_one({'_id': game_id}, {'$set': game.__dict__})
     socketio.emit('update_game_state', response)
-    logging.info(f'Roll executed with bet choice: {bet_choice}')
+    logging.info(f'Roll executed with bet choice: {bet_choice}, session: {session}')
     return jsonify(response)
 
 @app.route('/summary', methods=['GET'])

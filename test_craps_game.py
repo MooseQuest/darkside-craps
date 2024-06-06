@@ -24,7 +24,7 @@ def roll_dice(bet_choice, log_file):
         log_result(log_file, f"Error rolling dice: {e}\nResponse: {e.response.text}")
         return None
 
-def get_summary(log_file):  # Add the "log_file" parameter
+def get_summary(log_file):
     try:
         response = requests.get(f'{BASE_URL}/summary')
         response.raise_for_status()
@@ -37,6 +37,13 @@ def get_summary(log_file):  # Add the "log_file" parameter
 def log_result(log_file, message):
     with open(log_file, 'a') as file:
         file.write(message + '\n')
+
+def check_for_anomalies(response, log_file):
+    established_points = response.get('established_points', [])
+    if 7 in established_points or 11 in established_points:
+        anomaly_message = f"Anomaly detected: 7 or 11 in established points: {established_points}"
+        print(anomaly_message)
+        log_result(log_file, anomaly_message)
 
 def main():
     log_file = 'bet_tracker.log'
@@ -64,12 +71,8 @@ def main():
         ('bet', '4,4')   # Roll 8
     ]
 
-    def check_for_anomalies(response, log_file):
-        # Add your implementation here
-        pass
-
     for bet_choice, dice in dice_sequence:
-        response = roll_dice(bet_choice, log_file)  # Added "log_file" parameter
+        response = roll_dice(bet_choice, log_file)
         if response:
             print("Roll response:", response)
             log_result(log_file, f"Roll response: {json.dumps(response)}")
@@ -81,7 +84,7 @@ def main():
         time.sleep(1)
 
     # Get summary
-    summary = get_summary(log_file)  # Added "log_file" parameter
+    summary = get_summary(log_file)
     if summary:
         print("Game summary:", summary)
         log_result(log_file, f"Game summary: {json.dumps(summary)}")
