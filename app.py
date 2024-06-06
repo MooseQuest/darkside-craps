@@ -1,6 +1,6 @@
-import random
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
+from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 
@@ -8,6 +8,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SESSION_TYPE'] = 'filesystem'
 Session(app)
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 client = MongoClient('mongodb://localhost:27017/')
 db = client.craps_game
@@ -121,6 +122,7 @@ class CrapsStateMachine:
                     response['status'] += ' Three strikes, wait for a 7 before betting again.'
                     self.current_bets = []
             else:
+                self.established_points.append(roll_sum)
                 self._place_odds_bet(roll_sum, initial_bet)
                 response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
         else:
@@ -145,6 +147,7 @@ class CrapsStateMachine:
                     response['status'] += ' Three strikes, wait for a 7 before betting again.'
                     self.current_bets = []
             else:
+                self.established_points.append(roll_sum)
                 response['status'] = 'No bet'
         
         self.results.append(dice_roll)
@@ -170,6 +173,11 @@ def start_game():
     game_id = db.games.insert_one(game.__dict__).inserted_id
     session['game_id'] = str(game_id)
     session['initial_bankroll'] = initial_bankroll
+    socketio.emit('update_game_state', {
+        'initial_bankroll': initial_bankroll,
+        'current_bets': game.current_bets,
+        'bankroll': game.bankroll
+    })
     return jsonify({
         'status': 'Game started',
         'initial_bankroll': initial_bankroll,
@@ -179,6 +187,9 @@ def start_game():
 
 @app.route('/roll', methods=['POST'])
 def roll():
+    if 'game_id' not in session:
+        return jsonify({'error': 'No active game'}), 400
+    
     game_id = ObjectId(session['game_id'])
     game_data = db.games.find_one({'_id': game_id})
     game = CrapsStateMachine(game_data['initial_bankroll'])
@@ -186,14 +197,18 @@ def roll():
     bet_choice = request.form['bet_choice']
     response = game.handle_event('roll', bet_choice)
     db.games.update_one({'_id': game_id}, {'$set': game.__dict__})
+    socketio.emit('update_game_state', response)
     return jsonify(response)
 
 @app.route('/summary', methods=['GET'])
 def summary():
+    if 'game_id' not in session:
+        return jsonify({'error': 'No active game'}), 400
+    
     game_id = ObjectId(session['game_id'])
     game_data = db.games.find_one({'_id': game_id})
     
-    return jsonify({
+    summary = {
         'initial_bankroll': game_data['initial_bankroll'],
         'final_bankroll': game_data['bankroll'],
         'roll_count': game_data['roll_count'],
@@ -204,7 +219,9 @@ def summary():
         'wins': game_data['wins'],
         'losses': game_data['losses'],
         'strikes': game_data['strikes']
-    })
+    }
+    socketio.emit('update_game_summary', summary)
+    return jsonify(summary)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    socketio.run(app, debug=True)

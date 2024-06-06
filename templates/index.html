@@ -45,6 +45,7 @@
         }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -106,6 +107,41 @@
     </div>
     <script>
         $(document).ready(function() {
+            var socket = io.connect('http://127.0.0.1:5000');
+
+            socket.on('update_game_state', function(data) {
+                $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
+                $('#next-action-message').text(data.status);
+                $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+                $('#current-bankroll').text(data.bankroll);
+                $('#points-established').html(data.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
+                $('#dice-roll').text(data.dice_roll.join(', '));
+                $('#dice-total').text(data.roll_sum);
+                $('#strikes').text(data.strikes);
+
+                // Scroll to the bottom of the results container to make the latest roll visible
+                var resultsContainer = document.getElementById('results');
+                resultsContainer.scrollTop = resultsContainer.scrollHeight;
+            });
+
+            socket.on('update_game_summary', function(data) {
+                $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll + 
+                                            '\nFinal Bankroll: ' + data.final_bankroll + 
+                                            '\nRoll Count: ' + data.roll_count + 
+                                            '\nResults: ' + data.results.map(dice => dice.join(',')).join(' | ') + 
+                                            '\nPoints Established: ' + data.points_established + 
+                                            '\nPoints Hit: ' + data.points_hit + 
+                                            '\nPoints Lost: ' + data.points_lost + 
+                                            '\nWins: ' + data.wins + 
+                                            '\nLosses: ' + data.losses +
+                                            '\nStrikes: ' + data.strikes);
+                $('#summary').show();
+                $('#game-area').hide();
+                $('#show-summary-button').hide();
+                $('#continue-game-button').show();
+                $('#reset-button').show();
+            });
+
             function updatePossibleOutcomes() {
                 const betChoice = $('input[name="bet_choice"]:checked').val();
                 let outcomes = '';
@@ -148,23 +184,7 @@
                     method: 'POST',
                     data: $(this).serialize(),
                     success: function(response) {
-                        $('#results').append('<p>Roll ' + response.roll_count + ': ' + response.dice_roll.join(',') + ' (Total: ' + response.roll_sum + ')</p>');
-                        $('#next-action-message').text(response.status);
-                        if (response.summary_button) {
-                            $('#show-summary-button').show();
-                        } else {
-                            $('#show-summary-button').hide();
-                        }
-                        $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                        $('#current-bankroll').text(response.bankroll);
-                        $('#points-established').html(response.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
-                        $('#dice-roll').text(response.dice_roll.join(', '));
-                        $('#dice-total').text(response.roll_sum);
-                        $('#strikes').text(response.strikes);
-
-                        // Scroll to the bottom of the results container to make the latest roll visible
-                        var resultsContainer = document.getElementById('results');
-                        resultsContainer.scrollTop = resultsContainer.scrollHeight;
+                        socket.emit('update_game_state', response);
                     }
                 });
             });
@@ -174,21 +194,7 @@
                     url: '/summary',
                     method: 'GET',
                     success: function(response) {
-                        $('#summary-results').html('Initial Bankroll: ' + response.initial_bankroll + 
-                                                   '\nFinal Bankroll: ' + response.final_bankroll + 
-                                                   '\nRoll Count: ' + response.roll_count + 
-                                                   '\nResults: ' + response.results.map(dice => dice.join(',')).join(' | ') + 
-                                                   '\nPoints Established: ' + response.points_established + 
-                                                   '\nPoints Hit: ' + response.points_hit + 
-                                                   '\nPoints Lost: ' + response.points_lost + 
-                                                   '\nWins: ' + response.wins + 
-                                                   '\nLosses: ' + response.losses +
-                                                   '\nStrikes: ' + response.strikes);
-                        $('#summary').show();
-                        $('#game-area').hide();
-                        $('#show-summary-button').hide();
-                        $('#continue-game-button').show();
-                        $('#reset-button').show();
+                        socket.emit('update_game_summary', response);
                     }
                 });
             });
