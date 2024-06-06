@@ -4,7 +4,7 @@ import time
 
 BASE_URL = 'http://127.0.0.1:5000'
 
-def start_game(session, bankroll):
+def start_game(session, bankroll, log_file='bet_tracker.log'):
     try:
         response = session.post(f'{BASE_URL}/start', data={'bankroll': bankroll})
         response.raise_for_status()
