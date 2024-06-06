@@ -88,7 +88,8 @@ class CrapsStateMachine:
                 response['status'] = 'Twelve rolled, it\'s a push'
                 logging.info('Push on come out roll')
             else:
-                self.established_points.append(roll_sum)
+                if roll_sum not in [2, 3, 7, 11]:
+                    self.established_points.append(roll_sum)
                 self.come_out_roll = False  # Not the come-out roll anymore
                 self._place_odds_bet(roll_sum, initial_bet)
                 response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
@@ -147,7 +148,8 @@ class CrapsStateMachine:
                     response['status'] += ' Three strikes, wait for a 7 before betting again.'
                     self.current_bets = []
             else:
-                self.established_points.append(roll_sum)
+                if roll_sum not in [2, 3, 7, 11]:
+                    self.established_points.append(roll_sum)
                 self._place_odds_bet(roll_sum, initial_bet)
                 response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
                 logging.info(f'Point established: {roll_sum}')
@@ -175,7 +177,8 @@ class CrapsStateMachine:
                     response['status'] += ' Three strikes, wait for a 7 before betting again.'
                     self.current_bets = []
             else:
-                self.established_points.append(roll_sum)
+                if roll_sum not in [2, 3, 7, 11]:
+                    self.established_points.append(roll_sum)
                 response['status'] = 'No bet'
         
         self.results.append(dice_roll)
