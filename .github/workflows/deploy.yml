@@ -1,0 +1,86 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+
+    - name: Wait for MongoDB
+      run: |
+        for i in `seq 1 30`; do
+          nc -z localhost 27017 && break
+          echo "Waiting for MongoDB..."
+          sleep 1
+        done
+
+    - name: Wait for Redis
+      run: |
+        for i in `seq 1 30`; do
+          nc -z localhost 6379 && break
+          echo "Waiting for Redis..."
+          sleep 1
+        done
+
+    - name: Set environment variables
+      run: |
+        echo "MONGO_URI=mongodb://localhost:27017/craps_game" >> $GITHUB_ENV
+        echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+        echo "SECRET_KEY=test_secret_key" >> $GITHUB_ENV
+
+    - name: Run tests
+      run: |
+        source venv/bin/activate
+        python test_craps_game.py
+
+    - name: Create a unique build branch
+      run: |
+        BRANCH_NAME="build-branch-$(date +%Y%m%d%H%M%S)"
+        git checkout -b $BRANCH_NAME
+        echo $BRANCH_NAME > branch_name.txt
+
+    - name: Prepare for deployment
+      run: |
+        echo "web: python app.py" > Procfile
+        pip freeze > requirements.txt
+        echo "python-3.9.6" > runtime.txt
+
+    - name: Commit build changes
+      run: |
+        git add .
+        git commit -m "Prepare for deployment"
+
+    - name: Push to heroku-main branch
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        BRANCH_NAME=$(cat branch_name.txt)
+        git push origin $BRANCH_NAME:heroku-main --force
