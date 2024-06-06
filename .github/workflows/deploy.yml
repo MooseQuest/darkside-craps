@@ -1,0 +1,54 @@
+name: Deploy to Heroku
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: |
+        python -m venv venv
+        source venv/bin/activate
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: |
+        source venv/bin/activate
+        python test_craps_game.py
+
+    - name: Create a unique build branch
+      run: |
+        BRANCH_NAME="build-branch-$(date +%Y%m%d%H%M%S)"
+        git checkout -b $BRANCH_NAME
+        echo $BRANCH_NAME > branch_name.txt
+
+    - name: Prepare for deployment
+      run: |
+        echo "web: python app.py" > Procfile
+        pip freeze > requirements.txt
+        echo "python-3.9.6" > runtime.txt
+
+    - name: Commit build changes
+      run: |
+        git add .
+        git commit -m "Prepare for deployment"
+
+    - name: Push to heroku-main branch
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        BRANCH_NAME=$(cat branch_name.txt)
+        git push origin $BRANCH_NAME:heroku-main --force
