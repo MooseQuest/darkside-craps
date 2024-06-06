@@ -78,7 +78,7 @@
                 <div class="left">
                     <div id="results" class="scrollable mt-4"></div>
                     <div id="totals" class="mt-4">
-                        <p>Current Bet Amount: <span id="current-bets"></span></p>
+                        <p>Total Amount Wagered Over All Games: <span id="total-wagered"></span></p>
                         <p>Bankroll: <span id="current-bankroll"></span></p>
                         <p>Strikes: <span id="strikes"></span></p>
                     </div>
@@ -91,6 +91,7 @@
                     <div id="craps-table" class="craps-table mt-4">
                         <h4>Craps Table</h4>
                         <p>Points Established: <span id="points-established"></span></p>
+                        <p>Current Bet: <span id="current-bets"></span></p>
                         <p>Dice Roll: <span id="dice-roll"></span> Total: <span id="dice-total"></span></p>
                     </div>
                 </div>
@@ -114,6 +115,7 @@
                 $('#next-action-message').text(data.status);
                 $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
                 $('#current-bankroll').text(data.bankroll);
+                $('#total-wagered').text(data.total_wagered);
                 $('#points-established').html(data.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
                 $('#dice-roll').text(data.dice_roll.join(', '));
                 $('#dice-total').text(data.roll_sum);
@@ -134,7 +136,8 @@
                                             '\nPoints Lost: ' + data.points_lost + 
                                             '\nWins: ' + data.wins + 
                                             '\nLosses: ' + data.losses +
-                                            '\nStrikes: ' + data.strikes);
+                                            '\nStrikes: ' + data.strikes +
+                                            '\nTotal Amount Wagered Over All Games: ' + data.total_wagered);
                 $('#summary').show();
                 $('#game-area').hide();
                 $('#show-summary-button').hide();
@@ -165,6 +168,7 @@
                         $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
                         $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
                         $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+                        $('#total-wagered').text(response.total_wagered);
                         $('#current-bankroll').text(response.bankroll);
                         $('#next-action-message').text(response.status);
                         $('#strikes').text(0);
@@ -210,6 +214,7 @@
                         $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
                         $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
                         $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+                        $('#total-wagered').text(response.total_wagered);
                         $('#current-bankroll').text(response.bankroll);
                         $('#strikes').text(0);
                         $('#show-summary-button').hide();

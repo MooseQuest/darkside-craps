@@ -1,10 +1,9 @@
-import random
+import random  # Ensure the random module is imported
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from random import randint
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
@@ -23,6 +22,7 @@ class CrapsStateMachine:
     def __init__(self, initial_bankroll):
         self.initial_bankroll = initial_bankroll
         self.bankroll = initial_bankroll
+        self.total_wagered = 0
         self.current_bets = [{'type': 'Don\'t Pass', 'bet': 25 if initial_bankroll == 1000 else 50, 'potential_win': 25 if initial_bankroll == 1000 else 50}]
         self.established_points = []
         self.results = []
@@ -55,10 +55,12 @@ class CrapsStateMachine:
             'wins': self.wins,
             'losses': self.losses,
             'established_points': self.established_points,
-            'strikes': self.strikes
+            'strikes': self.strikes,
+            'total_wagered': self.total_wagered
         }
 
         if bet_choice == 'bet':
+            self.total_wagered += initial_bet
             if roll_sum in [7, 11]:
                 self.bankroll -= initial_bet
                 self.losses += initial_bet
@@ -99,7 +101,8 @@ class CrapsStateMachine:
             'wins': self.wins,
             'losses': self.losses,
             'established_points': self.established_points,
-            'strikes': self.strikes
+            'strikes': self.strikes,
+            'total_wagered': self.total_wagered
         }
 
         if bet_choice == 'bet':
@@ -126,6 +129,7 @@ class CrapsStateMachine:
             else:
                 self.established_points.append(roll_sum)
                 self._place_odds_bet(roll_sum, initial_bet)
+                self.total_wagered += initial_bet
                 response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
         else:
             if roll_sum == 7:
@@ -178,13 +182,15 @@ def start_game():
     socketio.emit('update_game_state', {
         'initial_bankroll': initial_bankroll,
         'current_bets': game.current_bets,
-        'bankroll': game.bankroll
+        'bankroll': game.bankroll,
+        'total_wagered': game.total_wagered
     })
     return jsonify({
         'status': 'Game started',
         'initial_bankroll': initial_bankroll,
         'current_bets': game.current_bets,
-        'bankroll': game.bankroll
+        'bankroll': game.bankroll,
+        'total_wagered': game.total_wagered
     })
 
 @app.route('/roll', methods=['POST'])
@@ -220,7 +226,8 @@ def summary():
         'points_lost': game_data['points_lost'],
         'wins': game_data['wins'],
         'losses': game_data['losses'],
-        'strikes': game_data['strikes']
+        'strikes': game_data['strikes'],
+        'total_wagered': game_data['total_wagered']
     }
     socketio.emit('update_game_summary', summary)
     return jsonify(summary)
