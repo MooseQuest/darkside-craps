@@ -9,6 +9,26 @@ jobs:
   test-and-deploy:
     runs-on: ubuntu-latest
 
+    services:
+      mongo:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: > 
+          --health-cmd="mongo --eval 'db.runCommand({ ping: 1 })'" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+      redis:
+        image: redis:latest
+        ports:
+          - 6379:6379
+        options: > 
+          --health-cmd="redis-cli ping" 
+          --health-interval=10s 
+          --health-timeout=5s 
+          --health-retries=5
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v2
@@ -23,6 +43,28 @@ jobs:
         python -m venv venv
         source venv/bin/activate
         pip install -r requirements.txt
+
+    - name: Wait for MongoDB
+      run: |
+        for i in `seq 1 30`; do
+          nc -z localhost 27017 && break
+          echo "Waiting for MongoDB..."
+          sleep 1
+        done
+
+    - name: Wait for Redis
+      run: |
+        for i in `seq 1 30`; do
+          nc -z localhost 6379 && break
+          echo "Waiting for Redis..."
+          sleep 1
+        done
+
+    - name: Set environment variables
+      run: |
+        echo "MONGO_URI=mongodb://localhost:27017/craps_game" >> $GITHUB_ENV
+        echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
+        echo "SECRET_KEY=test_secret_key" >> $GITHUB_ENV
 
     - name: Run tests
       run: |
