@@ -1,19 +1,31 @@
 
-# Craps Strategy 2024
+# Dark Side Craps Strategy 2024
 
 This repository contains the initial setup for developing a craps strategy model using Python and Flask. The objective of this model is to simulate a craps strategy and determine the likelihood of success.
+
+This hopes to illustrate and run the Long Dark Side Strategy that I have put together to ensure you have a long play at the crap table. The idea is not to win or lose, but play close to the house edge and for a long period of time. The likelihood of winning at this strategy is low, but higher than if you played the light side. Thus, there are larger bankrolls involved.
+
+Odds here are maintained around the idea of betting enough to equal or gain higher than your original bet. You may get questions about your bet, but nonetheless this has been tested.
+
+Discipline is required to execute this strategy as it is built to ensure you don't lose all the money faster than a certain amount of play time. As the time extended for your play, along with the number of roles, the probably of success goes down. The limitations of that are built into the simulation to let you know when it's time to walk away.
 
 ## Folder Structure
 
 ```
-something-something-darkside/
+.
+├── .gitignore
+├── .vscode
+│   └── launch.json
 ├── README.md
 ├── app.py
-├── docs/
+├── docs
 │   ├── KH-Long-Dark-Side.md
 │   └── chatgpt-prompt.txt
-└── templates/
-    └── index.html
+├── templates
+│   └── index.html
+├── test_craps_game.py
+├── test_flask_app.py
+└── test_strategy.py
 ```
 
 ## Prerequisites
@@ -22,6 +34,10 @@ To run this project, you will need to have the following software installed on y
 
 - Python 3.x
 - pip (Python package installer)
+
+## ChatGPT Prompt
+
+If you want to journey down creating or building this app with generative AI, here is the prompt I used along with the Strategy. First I wrote out the strategy, the built out the components to support the strategy.
 
 ## Setup Instructions
 
