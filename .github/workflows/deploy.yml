@@ -67,6 +67,12 @@ jobs:
         git checkout -b $BRANCH_NAME
         echo $BRANCH_NAME > branch_name.txt
 
+    - name: Set Git config
+      run: |
+        git config user.email "kris+ci@moosequest.net"
+        git config user.name "MoosQuest Github Runner"
+
+
     - name: Prepare for deployment
       run: |
         echo "web: python app.py" > Procfile
