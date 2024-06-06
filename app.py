@@ -1,8 +1,10 @@
+import random
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from random import randint
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
