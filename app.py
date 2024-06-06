@@ -7,6 +7,7 @@ from flask_session import Session
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from redis import Redis
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -20,8 +21,9 @@ logging.basicConfig(filename='craps_game.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 # Flask Session and app config 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'supersecretkey'
-app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
+app.config['SESSION_TYPE'] = 'redis'
+app.config['SESSION_REDIS'] = Redis.from_url(os.getenv('REDISCLOUD_URL'))
 Session(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
