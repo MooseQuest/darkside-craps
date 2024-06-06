@@ -27,8 +27,11 @@ app.config['SESSION_REDIS'] = Redis.from_url(os.getenv('REDISCLOUD_URL'))
 Session(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-client = MongoClient('mongodb://localhost:27017/')
+# Set up MongoDB connection
+MONGO_URI = os.getenv('MONGO_URI')
+client = MongoClient(MONGO_URI)
 db = client.craps_game
+
 
 # Function to simulate a dice roll
 def roll_dice():
@@ -285,5 +288,9 @@ def summary():
     return jsonify(summary)
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    if os.environ.get('FLASK_ENV') == 'development':
+        port = int(os.environ.get("PORT", 5000))
+        socketio.run(app, host='0.0.0.0', port=port, debug=True)
+    else:
+        port = int(os.environ.get("PORT", 5000))
+        socketio.run(app, host='0.0.0.0', port=port, allow_unsafe_werkzeug=True)
