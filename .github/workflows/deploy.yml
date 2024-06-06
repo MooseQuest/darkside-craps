@@ -86,7 +86,7 @@ jobs:
 
     - name: Push to heroku-main branch
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.PAT }}
       run: |
         BRANCH_NAME=$(cat branch_name.txt)
-        git push origin $BRANCH_NAME:heroku-main --force
+        git push https://${{ secrets.PAT }}@github.com/MooseQuest/darkside-craps.git $BRANCH_NAME:heroku-main --force
