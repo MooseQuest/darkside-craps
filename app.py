@@ -1,9 +1,14 @@
-import random  # Ensure the random module is imported
+import random
+import logging  # Import the logging module
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+
+# Set up logging
+logging.basicConfig(filename='craps_game.log', level=logging.INFO, 
+                    format='%(asctime)s - %(levelname)s - %(message)s')
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
@@ -33,6 +38,9 @@ class CrapsStateMachine:
         self.losses = 0
         self.strikes = 0
         self.come_out_roll = True
+
+        # Log the initialization
+        logging.info(f'Initialized game with bankroll: {self.initial_bankroll}')
 
     def handle_event(self, event, bet_choice):
         state = 'come_out_roll' if self.come_out_roll else 'point_established'
@@ -68,22 +76,27 @@ class CrapsStateMachine:
                 response['summary_button'] = True
                 response['continue_button'] = True
                 self.come_out_roll = True  # Reset to come-out roll
+                logging.info(f'Loss on come out roll: {initial_bet}')
             elif roll_sum in [2, 3]:
                 self.bankroll += initial_bet
                 self.wins += initial_bet
                 response['status'] = 'Two or Three rolled, you won the Don\'t Pass bet'
+                logging.info(f'Win on come out roll: {initial_bet}')
             elif roll_sum == 12:
                 response['status'] = 'Twelve rolled, it\'s a push'
+                logging.info('Push on come out roll')
             else:
                 self.established_points.append(roll_sum)
                 self.come_out_roll = False  # Not the come-out roll anymore
                 self._place_odds_bet(roll_sum, initial_bet)
                 response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
+                logging.info(f'Point established: {roll_sum}')
         else:
             response['status'] = 'No bet'
         
         self.results.append(dice_roll)
         self.roll_count += 1
+        logging.info(f'Roll: {dice_roll}, Roll Sum: {roll_sum}')
         return response
 
     def point_established_roll(self, bet_choice):
@@ -106,6 +119,7 @@ class CrapsStateMachine:
         }
 
         if bet_choice == 'bet':
+            self.total_wagered += initial_bet
             if roll_sum == 7:
                 total_wins = sum(bet['potential_win'] for bet in self.current_bets if bet.get('point') in self.established_points)
                 self.bankroll += total_wins
@@ -115,6 +129,7 @@ class CrapsStateMachine:
                 response['continue_button'] = True
                 self.come_out_roll = True  # Reset to come-out roll
                 self.established_points = []  # Clear all established points
+                logging.info(f'Win on established points: {total_wins}')
             elif roll_sum in self.established_points:
                 point_bet = next((bet for bet in self.current_bets if bet.get('point') == roll_sum), None)
                 self.bankroll -= (initial_bet + point_bet['bet'] if point_bet else 0)
@@ -123,14 +138,15 @@ class CrapsStateMachine:
                 self.established_points.remove(roll_sum)
                 response['status'] = 'Point hit. Don\'t Behind ' + str(roll_sum) + ' and it\'s replaced by your Don\'t Come bet. This is strike ' + str(self.strikes + 1) + '. Place another Don\'t Come bet.'
                 self.strikes += 1
+                logging.info(f'Loss on established point: {roll_sum}')
                 if self.strikes >= 3:
                     response['status'] += ' Three strikes, wait for a 7 before betting again.'
                     self.current_bets = []
             else:
                 self.established_points.append(roll_sum)
                 self._place_odds_bet(roll_sum, initial_bet)
-                self.total_wagered += initial_bet
                 response['status'] = 'Point established. Place a $' + str(initial_bet) + ' Don\'t Come bet.'
+                logging.info(f'Point established: {roll_sum}')
         else:
             if roll_sum == 7:
                 total_wins = sum(bet['potential_win'] for bet in self.current_bets if bet.get('point') in self.established_points)
@@ -141,6 +157,7 @@ class CrapsStateMachine:
                 response['continue_button'] = True
                 self.come_out_roll = True  # Reset to come-out roll
                 self.established_points = []  # Clear all established points
+                logging.info(f'Win on established points: {total_wins}')
             elif roll_sum in self.established_points:
                 point_bet = next((bet for bet in self.current_bets if bet.get('point') == roll_sum), None)
                 self.bankroll -= (initial_bet + point_bet['bet'] if point_bet else 0)
@@ -149,6 +166,7 @@ class CrapsStateMachine:
                 self.established_points.remove(roll_sum)
                 response['status'] = 'Point hit. Don\'t Behind ' + str(roll_sum) + ' and it\'s replaced by your Don\'t Come bet. This is strike ' + str(self.strikes + 1) + '. Place another Don\'t Come bet.'
                 self.strikes += 1
+                logging.info(f'Loss on established point: {roll_sum}')
                 if self.strikes >= 3:
                     response['status'] += ' Three strikes, wait for a 7 before betting again.'
                     self.current_bets = []
@@ -158,6 +176,7 @@ class CrapsStateMachine:
         
         self.results.append(dice_roll)
         self.roll_count += 1
+        logging.info(f'Roll: {dice_roll}, Roll Sum: {roll_sum}')
         return response
 
     def _place_odds_bet(self, roll_sum, initial_bet):
@@ -167,6 +186,7 @@ class CrapsStateMachine:
             self.current_bets.append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 60 if self.initial_bankroll == 1000 else 75, 'potential_win': 40 if self.initial_bankroll == 1000 else 75})
         elif roll_sum in [6, 8]:
             self.current_bets.append({'type': 'Lay Odds', 'point': roll_sum, 'bet': 30 if self.initial_bankroll == 1000 else 60, 'potential_win': 25 if self.initial_bankroll == 1000 else 60})
+        logging.info(f'Placed odds bet: Point {roll_sum}, Bet {initial_bet}')
 
 @app.route('/')
 def home():
@@ -185,6 +205,7 @@ def start_game():
         'bankroll': game.bankroll,
         'total_wagered': game.total_wagered
     })
+    logging.info(f'Game started with bankroll: {initial_bankroll}')
     return jsonify({
         'status': 'Game started',
         'initial_bankroll': initial_bankroll,
@@ -206,6 +227,7 @@ def roll():
     response = game.handle_event('roll', bet_choice)
     db.games.update_one({'_id': game_id}, {'$set': game.__dict__})
     socketio.emit('update_game_state', response)
+    logging.info(f'Roll executed with bet choice: {bet_choice}')
     return jsonify(response)
 
 @app.route('/summary', methods=['GET'])
@@ -230,6 +252,7 @@ def summary():
         'total_wagered': game_data['total_wagered']
     }
     socketio.emit('update_game_summary', summary)
+    logging.info(f'Game summary: {summary}')
     return jsonify(summary)
 
 if __name__ == '__main__':
