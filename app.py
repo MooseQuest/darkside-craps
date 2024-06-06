@@ -9,7 +9,7 @@ from bson.objectid import ObjectId
 # Set up logging
 logging.basicConfig(filename='craps_game.log', level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s')
-
+# Flask Session and app config 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'supersecretkey'
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -42,6 +42,7 @@ class CrapsStateMachine:
         # Log the initialization
         logging.info(f'Initialized game with bankroll: {self.initial_bankroll}')
 
+    # Sets up a new game and estalishes the initial state and the point off.
     def handle_event(self, event, bet_choice):
         state = 'come_out_roll' if self.come_out_roll else 'point_established'
         method_name = f'{state}_{event}'
