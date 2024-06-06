@@ -160,6 +160,10 @@
                         $('#dice-roll').text(response.dice_roll.join(', '));
                         $('#dice-total').text(response.roll_sum);
                         $('#strikes').text(response.strikes);
+
+                        // Scroll to the bottom of the results container to make the latest roll visible
+                        var resultsContainer = document.getElementById('results');
+                        resultsContainer.scrollTop = resultsContainer.scrollHeight;
                     }
                 });
             });
