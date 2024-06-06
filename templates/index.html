@@ -39,6 +39,10 @@
             border: 1px solid #ced4da;
             border-radius: 5px;
         }
+        .scrollable {
+            max-height: 200px;
+            overflow-y: scroll;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
@@ -71,7 +75,7 @@
             </form>
             <div class="container-flex">
                 <div class="left">
-                    <div id="results" class="mt-4"></div>
+                    <div id="results" class="scrollable mt-4"></div>
                     <div id="totals" class="mt-4">
                         <p>Current Bet Amount: <span id="current-bets"></span></p>
                         <p>Bankroll: <span id="current-bankroll"></span></p>
