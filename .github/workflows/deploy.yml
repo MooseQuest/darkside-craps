@@ -24,6 +24,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
+    - name: Start Flask app
+      run: |
+        nohup python app.py &
+
+    - name: Wait for Flask app to start
+      run: |
+        sleep 10  # Adjust the sleep time if necessary to give the server enough time to start
+
     - name: Run tests
       run: |
         python test_craps_game.py
