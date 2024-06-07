@@ -112,7 +112,7 @@
     </div>
     <script>
         $(document).ready(function() {
-            var socket = io.connect('http://127.0.0.1:5000');
+            var socket = io.connect(window.location.protocol + '//' + window.location.host);
 
             socket.on('update_game_state', function(data) {
                 $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
