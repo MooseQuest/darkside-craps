@@ -1,4 +1,4 @@
-name: Deploy to Heroku
+name: Deploy
 
 on:
   push:
@@ -6,87 +6,35 @@ on:
       - main
 
 jobs:
-  test-and-deploy:
+  build:
     runs-on: ubuntu-latest
 
-    services:
-      mongo:
-        image: mongo:latest
-        ports:
-          - 27017:27017
-      redis:
-        image: redis:latest
-        ports:
-          - 6379:6379
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: 3.9
+        python-version: '3.9'
 
     - name: Install dependencies
       run: |
-        python -m venv venv
-        source venv/bin/activate
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
-
-    - name: Wait for MongoDB
-      run: |
-        for i in `seq 1 30`; do
-          nc -z localhost 27017 && break
-          echo "Waiting for MongoDB..."
-          sleep 1
-        done
-
-    - name: Wait for Redis
-      run: |
-        for i in `seq 1 30`; do
-          nc -z localhost 6379 && break
-          echo "Waiting for Redis..."
-          sleep 1
-        done
-
-    - name: Set environment variables
-      run: |
-        echo "MONGO_URI=mongodb://localhost:27017/craps_game" >> $GITHUB_ENV
-        echo "REDIS_URL=redis://localhost:6379" >> $GITHUB_ENV
-        echo "SECRET_KEY=test_secret_key" >> $GITHUB_ENV
 
     - name: Run tests
       run: |
-        source venv/bin/activate
         python test_craps_game.py
 
-    - name: Create a unique build branch
+    - name: Commit files
       run: |
-        BRANCH_NAME="build-branch-$(date +%Y%m%d%H%M%S)"
-        git checkout -b $BRANCH_NAME
-        echo $BRANCH_NAME > branch_name.txt
-
-    - name: Set Git config
-      run: |
-        git config user.email "kris+ci@moosequest.net"
-        git config user.name "MoosQuest Github Runner"
-
-
-    - name: Prepare for deployment
-      run: |
-        echo "web: python app.py" > Procfile
-        pip freeze > requirements.txt
-        echo "python-3.9.6" > runtime.txt
-
-    - name: Commit build changes
-      run: |
-        git add .
-        git commit -m "Prepare for deployment"
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git commit -a -m "Prepare for deployment" || echo "No changes to commit"
 
     - name: Push to heroku-main branch
-      env:
-        GITHUB_TOKEN: ${{ secrets.PAT }}
-      run: |
-        BRANCH_NAME=$(cat branch_name.txt)
-        git push https://${{ secrets.PAT }}@github.com/MooseQuest/darkside-craps.git $BRANCH_NAME:heroku-main --force
+      uses: ad-m/github-push-action@master
+      with:
+        branch: heroku-main
