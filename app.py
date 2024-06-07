@@ -9,6 +9,8 @@ from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from redis import Redis
+from flask_cors import CORS
+
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -38,11 +40,12 @@ mongo_logger.addHandler(handler)
 
 # Flask Session and app config 
 app = Flask(__name__)
+CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = Redis.from_url(os.getenv('REDISCLOUD_URL'))
 Session(app)
-socketio = SocketIO(app, cors_allowed_origins=["http://127.0.0.1:5000", "https://mq-craps-aca54a5fd2a3.herokuapp.com"])
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Set up MongoDB connection
 MONGO_URI = os.getenv('MONGO_URI')

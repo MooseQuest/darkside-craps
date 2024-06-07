@@ -112,8 +112,9 @@
     </div>
     <script>
         $(document).ready(function() {
+            // Update the WebSocket connection URL
             var socket = io.connect(window.location.origin);
-
+    
             socket.on('update_game_state', function(data) {
                 $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
                 $('#next-action-message').text(data.status);
@@ -125,12 +126,12 @@
                 $('#dice-roll').text(data.dice_roll.join(', '));
                 $('#dice-total').text(data.roll_sum);
                 $('#strikes').text(data.strikes);
-
+    
                 // Scroll to the bottom of the results container to make the latest roll visible
                 var resultsContainer = document.getElementById('results');
                 resultsContainer.scrollTop = resultsContainer.scrollHeight;
             });
-
+    
             socket.on('update_game_summary', function(data) {
                 $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll + 
                                             '\nFinal Bankroll: ' + data.final_bankroll + 
@@ -149,7 +150,7 @@
                 $('#continue-game-button').show();
                 $('#reset-button').show();
             });
-
+    
             function updatePossibleOutcomes() {
                 const betChoice = $('input[name="bet_choice"]:checked').val();
                 let outcomes = '';
@@ -160,7 +161,7 @@
                 }
                 $('#possible-outcomes').html(outcomes);
             }
-
+    
             $('#start-form').on('submit', function(event) {
                 event.preventDefault();
                 $.ajax({
@@ -182,11 +183,11 @@
                     }
                 });
             });
-
+    
             $('input[name="bet_choice"]').on('change', function() {
                 updatePossibleOutcomes();
             });
-
+    
             $('#roll-form').on('submit', function(event) {
                 event.preventDefault();
                 $.ajax({
@@ -198,7 +199,7 @@
                     }
                 });
             });
-
+    
             $('#show-summary-button').on('click', function() {
                 $.ajax({
                     url: '/summary',
@@ -208,7 +209,7 @@
                     }
                 });
             });
-
+    
             $('#continue-game-button').on('click', function() {
                 $.ajax({
                     url: '/start',
@@ -229,7 +230,7 @@
                     }
                 });
             });
-
+    
             $('#reset-button').on('click', function() {
                 $('#summary').hide();
                 $('#start-form').show();
@@ -239,7 +240,7 @@
                 $('#continue-game-button').hide();
                 $('#reset-button').hide();
             });
-
+    
             $('#new-game-button').on('click', function() {
                 $.ajax({
                     url: '/summary',
