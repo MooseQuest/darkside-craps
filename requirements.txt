@@ -8,6 +8,7 @@ charset-normalizer==3.3.2
 click==8.1.7
 dnspython==2.6.1
 exceptiongroup==1.2.1
+eventlet==0.31.0
 Flask==3.0.3
 Flask-Cors==4.0.1
 Flask-Session==0.8.0

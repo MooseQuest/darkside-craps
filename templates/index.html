@@ -112,8 +112,7 @@
     </div>
     <script>
         $(document).ready(function() {
-            // Update the WebSocket connection URL
-            var socket = io.connect(window.location.origin);
+            var socket = io.connect('https://mq-craps-aca54a5fd2a3.herokuapp.com');
     
             socket.on('update_game_state', function(data) {
                 $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');

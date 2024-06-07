@@ -2,6 +2,7 @@ import random
 import logging
 import os
 import sys
+import eventlet
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
@@ -11,6 +12,7 @@ from bson.objectid import ObjectId
 from redis import Redis
 from flask_cors import CORS
 
+eventlet.monkey_patch()
 
 load_dotenv()  # Load environment variables from .env file
 
@@ -45,7 +47,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = Redis.from_url(os.getenv('REDISCLOUD_URL'))
 Session(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
 # Set up MongoDB connection
 MONGO_URI = os.getenv('MONGO_URI')
