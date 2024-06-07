@@ -1,6 +1,7 @@
 import random
 import logging
 import os
+import sys
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, jsonify, session
 from flask_session import Session
@@ -17,8 +18,24 @@ client = MongoClient(MONGO_URI)
 db = client.craps_game
 
 # Set up logging
-logging.basicConfig(filename='craps_game.log', level=logging.INFO, 
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+# logging.basicConfig(filename='craps_game.log', level=logging.INFO, 
+#                     format='%(asctime)s - %(levelname)s - %(message)s')
+
+# try:
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+handler = logging.StreamHandler(sys.stdout)  # Use sys.stdout for Heroku logging
+handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler.setFormatter(formatter)
+logging.getLogger().addHandler(handler)
+
+# Set up MongoDB logging
+mongo_logger = logging.getLogger('pymongo')
+mongo_logger.setLevel(logging.INFO)
+mongo_logger.addHandler(handler)
+
+
 # Flask Session and app config 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
