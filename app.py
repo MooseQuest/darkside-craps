@@ -42,7 +42,7 @@ app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SESSION_TYPE'] = 'redis'
 app.config['SESSION_REDIS'] = Redis.from_url(os.getenv('REDISCLOUD_URL'))
 Session(app)
-socketio = SocketIO(app, cors_allowed_origins=["http://127.0.0.1:5000", "https://your-heroku-app.herokuapp.com"])
+socketio = SocketIO(app, cors_allowed_origins=["http://127.0.0.1:5000", "https://mq-craps-aca54a5fd2a3.herokuapp.com"])
 
 # Set up MongoDB connection
 MONGO_URI = os.getenv('MONGO_URI')
