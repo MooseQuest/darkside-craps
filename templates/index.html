@@ -43,6 +43,31 @@
             max-height: 200px;
             overflow-y: scroll;
         }
+        .spinner-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        .spinner {
+            width: 3rem;
+            height: 3rem;
+            border: 0.4rem solid rgba(255, 255, 255, 0.3);
+            border-top: 0.4rem solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
@@ -110,10 +135,13 @@
             <button id="new-game-button" class="btn btn-primary">New Game</button>
         </div>
     </div>
+    <div class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
     <script>
         $(document).ready(function() {
             var socket = io.connect('https://mq-craps-aca54a5fd2a3.herokuapp.com');
-    
+
             socket.on('update_game_state', function(data) {
                 $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
                 $('#next-action-message').text(data.status);
@@ -125,12 +153,15 @@
                 $('#dice-roll').text(data.dice_roll.join(', '));
                 $('#dice-total').text(data.roll_sum);
                 $('#strikes').text(data.strikes);
-    
+
                 // Scroll to the bottom of the results container to make the latest roll visible
                 var resultsContainer = document.getElementById('results');
                 resultsContainer.scrollTop = resultsContainer.scrollHeight;
+
+                // Hide the spinner
+                $('.spinner-overlay').hide();
             });
-    
+
             socket.on('update_game_summary', function(data) {
                 $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll + 
                                             '\nFinal Bankroll: ' + data.final_bankroll + 
@@ -148,8 +179,11 @@
                 $('#show-summary-button').hide();
                 $('#continue-game-button').show();
                 $('#reset-button').show();
+
+                // Hide the spinner
+                $('.spinner-overlay').hide();
             });
-    
+
             function updatePossibleOutcomes() {
                 const betChoice = $('input[name="bet_choice"]:checked').val();
                 let outcomes = '';
@@ -160,77 +194,98 @@
                 }
                 $('#possible-outcomes').html(outcomes);
             }
-    
-            $('#start-form').on('submit', function(event) {
-                event.preventDefault();
-                $.ajax({
-                    url: '/start',
-                    method: 'POST',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        $('#game-area').show();
-                        $('#start-form').hide();
-                        $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
-                        $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
-                        $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                        $('#total-wagered').text(response.total_wagered);
-                        $('#current-bankroll').text(response.bankroll);
-                        $('#next-action-message').text(response.status);
-                        $('#next-bet-message').text(response.next_bet);
-                        $('#strikes').text(0);
-                        updatePossibleOutcomes();
-                    }
-                });
-            });
-    
-            $('input[name="bet_choice"]').on('change', function() {
-                updatePossibleOutcomes();
-            });
-    
-            $('#roll-form').on('submit', function(event) {
-                event.preventDefault();
-                $.ajax({
-                    url: '/roll',
-                    method: 'POST',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        socket.emit('update_game_state', response);
-                    }
-                });
-            });
-    
-            $('#show-summary-button').on('click', function() {
-                $.ajax({
-                    url: '/summary',
-                    method: 'GET',
-                    success: function(response) {
-                        socket.emit('update_game_summary', response);
-                    }
-                });
-            });
-    
-            $('#continue-game-button').on('click', function() {
-                $.ajax({
-                    url: '/start',
-                    method: 'POST',
-                    data: { bankroll: $('#current-bankroll').text() },
-                    success: function(response) {
-                        $('#game-area').show();
-                        $('#summary').hide();
-                        $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
-                        $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
-                        $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                        $('#total-wagered').text(response.total_wagered);
-                        $('#current-bankroll').text(response.bankroll);
-                        $('#strikes').text(0);
-                        $('#show-summary-button').hide();
-                        $('#continue-game-button').hide();
-                        $('#reset-button').hide();
-                    }
-                });
-            });
-    
-            $('#reset-button').on('click', function() {
+
+$('#start-form').on('submit', function(event) {
+    event.preventDefault();
+    $.ajax({
+        url: '/start',
+        method: 'POST',
+        data: $(this).serialize(),
+        success: function(response) {
+            $('#game-area').show();
+            $('#start-form').hide();
+            $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
+            $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
+            $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+            $('#total-wagered').text(response.total_wagered);
+            $('#current-bankroll').text(response.bankroll);
+            $('#next-action-message').text(response.status);
+            $('#next-bet-message').text(response.next_bet);
+            $('#strikes').text(0);
+            updatePossibleOutcomes();
+        }
+    });
+});
+
+$('input[name="bet_choice"]').on('change', function() {
+    updatePossibleOutcomes();
+});
+
+$('#roll-form').on('submit', function(event) {
+    event.preventDefault();
+    // Show the spinner
+    $('.spinner-overlay').show();
+    $.ajax({
+        url: '/roll',
+        method: 'POST',
+        data: $(this).serialize(),
+        success: function(response) {
+            socket.emit('update_game_state', response);
+        }
+    });
+});
+
+$('#show-summary-button').on('click', function() {
+    $.ajax({
+        url: '/summary',
+        method: 'GET',
+        success: function(response) {
+            socket.emit('update_game_summary', response);
+        }
+    });
+});
+
+$('#continue-game-button').on('click', function() {
+    $.ajax({
+        url: '/start',
+        method: 'POST',
+        data: { bankroll: $('#current-bankroll').text() },
+        success: function(response) {
+            $('#game-area').show();
+            $('#summary').hide();
+            $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
+            $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
+            $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+            $('#total-wagered').text(response.total_wagered);
+            $('#current-bankroll').text(response.bankroll);
+            $('#strikes').text(0);
+            $('#show-summary-button').hide();
+            $('#continue-game-button').hide();
+            $('#reset-button').hide();
+        }
+    });
+});
+
+$('#reset-button').on('click', function() {
+    $('#summary').hide();
+    $('#start-form').show();
+    $('#game-area').hide();
+    $('#results').html('');
+    $('#show-summary-button').hide();
+    $('#continue-game-button').hide();
+    $('#reset-button').hide();
+});
+
+$('#new-game-button').on('click', function() {
+    $.ajax({
+        url: '/summary',
+        method: 'GET',
+        success: function(response) {
+            if (response.final_bankroll <= 0.5 * response.initial_bankroll) {
+                alert('Walk away: Your bankroll is less than 50% of the initial bankroll.');
+            } else if (response.final_bankroll >= 1.2 * response.initial_bankroll) {
+                alert('Walk away: Your bankroll is more than 20% above the initial bankroll.');
+            } else {
                 $('#summary').hide();
                 $('#start-form').show();
                 $('#game-area').hide();
@@ -238,30 +293,11 @@
                 $('#show-summary-button').hide();
                 $('#continue-game-button').hide();
                 $('#reset-button').hide();
-            });
-    
-            $('#new-game-button').on('click', function() {
-                $.ajax({
-                    url: '/summary',
-                    method: 'GET',
-                    success: function(response) {
-                        if (response.final_bankroll <= 0.5 * response.initial_bankroll) {
-                            alert('Walk away: Your bankroll is less than 50% of the initial bankroll.');
-                        } else if (response.final_bankroll >= 1.2 * response.initial_bankroll) {
-                            alert('Walk away: Your bankroll is more than 20% above the initial bankroll.');
-                        } else {
-                            $('#summary').hide();
-                            $('#start-form').show();
-                            $('#game-area').hide();
-                            $('#results').html('');
-                            $('#show-summary-button').hide();
-                            $('#continue-game-button').hide();
-                            $('#reset-button').hide();
-                        }
-                    }
-                });
-            });
-        });
-    </script>
+            }
+        }
+    });
+});
+});
+</script>
 </body>
 </html>
