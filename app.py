@@ -20,6 +20,7 @@ MONGO_URI = os.getenv('MONGO_URI')
 SESSION_MONGO_URI = os.getenv('SESSION_MONGO_URI')
 
 client = MongoClient(MONGO_URI)
+session_client = MongoClient(SESSION_MONGO_URI)
 db = client.craps_game
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -40,8 +41,8 @@ app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SESSION_TYPE'] = 'mongodb'
-app.config['SESSION_MONGODB'] = MongoClient(SESSION_MONGO_URI)
-app.config['SESSION_MONGODB_DB'] = 'craps_game'
+app.config['SESSION_MONGODB'] = session_client
+app.config['SESSION_MONGODB_DB'] = 'craps_game_sessions'
 app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
 Session(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
