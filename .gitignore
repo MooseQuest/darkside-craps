@@ -21,7 +21,7 @@ node_modules/
 
 # Credentials
 .credentials/
-.env
+.env*
 
 # Flask Session files
 flask_session/
