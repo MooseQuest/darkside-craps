@@ -140,7 +140,7 @@
     </div>
     <script>
         $(document).ready(function() {
-            var socket = io.connect('https://mq-craps-aca54a5fd2a3.herokuapp.com');
+            var socket = io.connect();
 
             socket.on('update_game_state', function(data) {
                 $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
