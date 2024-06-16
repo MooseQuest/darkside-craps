@@ -44,8 +44,10 @@ mongo_logger.addHandler(handler)
 app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
-app.config['SESSION_TYPE'] = 'redis'
-app.config['SESSION_REDIS'] = Redis.from_url(os.getenv('REDISCLOUD_URL'))
+app.config['SESSION_TYPE'] = 'mongodb'
+app.config['SESSION_MONGODB'] = client
+app.config['SESSION_MONGODB_DB'] = 'craps_game'
+app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
 Session(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
