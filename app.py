@@ -22,12 +22,6 @@ SESSION_MONGO_URI = os.getenv('SESSION_MONGO_URI')
 client = MongoClient(MONGO_URI)
 db = client.craps_game
 
-# Set up logging
-# logging.basicConfig(filename='craps_game.log', level=logging.INFO, 
-#                     format='%(asctime)s - %(levelname)s - %(message)s')
-
-# try:
-# Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 handler = logging.StreamHandler(sys.stdout)  # Use sys.stdout for Heroku logging
 handler.setLevel(logging.INFO)
