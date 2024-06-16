@@ -17,6 +17,7 @@ gevent.monkey.patch_all()
 load_dotenv()  # Load environment variables from .env file
 
 MONGO_URI = os.getenv('MONGO_URI')
+SESSION_MONGO_URI = os.getenv('SESSION_MONGO_URI')
 
 client = MongoClient(MONGO_URI)
 db = client.craps_game
@@ -45,7 +46,7 @@ app = Flask(__name__)
 CORS(app)
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'default_secret_key')
 app.config['SESSION_TYPE'] = 'mongodb'
-app.config['SESSION_MONGODB'] = client
+app.config['SESSION_MONGODB'] = MongoClient(SESSION_MONGO_URI)
 app.config['SESSION_MONGODB_DB'] = 'craps_game'
 app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
 Session(app)
@@ -314,7 +315,7 @@ def summary():
 if __name__ == '__main__':
     if os.environ.get('FLASK_ENV') == 'development':
         port = int(os.environ.get("PORT", 5000))
-        socketio.run(app, host='0.0.0.0', port=port, debug=True)
+        socketio.run(app, host='0.0.0.0', port=5001, debug=True)
     else:
         port = int(os.environ.get("PORT", 5000))
         socketio.run(app, host='0.0.0.0', port=port, allow_unsafe_werkzeug=True)
