@@ -171,111 +171,88 @@
             });
         }
         $(document).ready(function() {
-            var socket = io.connect("https://mq-craps-aca54a5fd2a3.herokuapp.com");
+        var socket = io.connect("https://mq-craps-aca54a5fd2a3.herokuapp.com");
 
-            socket.on('update_game_state', function(data) {
-                $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
-                $('#next-action-message').text(data.status);
-                $('#next-bet-message').text(data.next_bet);
-                $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                $('#current-bankroll').text(data.bankroll);
-                $('#total-wagered').text(data.total_wagered);
-                $('#points-established').html(data.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
-                $('#dice-roll').text(data.dice_roll.join(', '));
-                $('#dice-total').text(data.roll_sum);
-                $('#strikes').text(data.strikes);
+        socket.on('update_game_state', function(data) {
+            $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
+            $('#next-action-message').text(data.status);
+            $('#next-bet-message').text(data.next_bet);
+            $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+            $('#current-bankroll').text(data.bankroll);
+            $('#total-wagered').text(data.total_wagered);
+            $('#points-established').html(data.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
+            $('#dice-roll').text(data.dice_roll.join(', '));
+            $('#dice-total').text(data.roll_sum);
+            $('#strikes').text(data.strikes);
 
-                // Scroll to the bottom of the results container to make the latest roll visible
-                var resultsContainer = document.getElementById('results');
-                resultsContainer.scrollTop = resultsContainer.scrollHeight;
+            // Scroll to the bottom of the results container to make the latest roll visible
+            var resultsContainer = document.getElementById('results');
+            resultsContainer.scrollTop = resultsContainer.scrollHeight;
 
-                // Hide the spinner
-                $('.spinner-overlay').hide();
-            });
+            // Hide the spinner
+            $('.spinner-overlay').hide();
+            console.log("Spinner hidden");
+        });
 
-            socket.on('update_game_summary', function(data) {
-                $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll + 
-                                            '\nFinal Bankroll: ' + data.final_bankroll + 
-                                            '\nRoll Count: ' + data.roll_count + 
-                                            '\nResults: ' + data.results.map(dice => dice.join(',')).join(' | ') + 
-                                            '\nPoints Established: ' + data.points_established + 
-                                            '\nPoints Hit: ' + data.points_hit + 
-                                            '\nPoints Lost: ' + data.points_lost + 
-                                            '\nWins: ' + data.wins + 
-                                            '\nLosses: ' + data.losses +
-                                            '\nStrikes: ' + data.strikes +
-                                            '\nTotal Amount Wagered Over All Games: ' + data.total_wagered);
-                $('#summary').show();
-                $('#game-area').hide();
-                $('#show-summary-button').hide();
-                $('#continue-game-button').show();
-                $('#reset-button').show();
+        socket.on('update_game_summary', function(data) {
+            $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll + 
+                                        '\nFinal Bankroll: ' + data.final_bankroll + 
+                                        '\nRoll Count: ' + data.roll_count + 
+                                        '\nResults: ' + data.results.map(dice => dice.join(',')).join(' | ') + 
+                                        '\nPoints Established: ' + data.points_established + 
+                                        '\nPoints Hit: ' + data.points_hit + 
+                                        '\nPoints Lost: ' + data.points_lost + 
+                                        '\nWins: ' + data.wins + 
+                                        '\nLosses: ' + data.losses +
+                                        '\nStrikes: ' + data.strikes +
+                                        '\nTotal Amount Wagered Over All Games: ' + data.total_wagered);
+            $('#summary').show();
+            $('#game-area').hide();
+            $('#show-summary-button').hide();
+            $('#continue-game-button').show();
+            $('#reset-button').show();
 
-                // Hide the spinner
-                $('.spinner-overlay').hide();
-            });
+            // Hide the spinner
+            $('.spinner-overlay').hide();
+            console.log("Spinner hidden");
+        });
 
-            function updatePossibleOutcomes() {
-                const betChoice = $('input[name="bet_choice"]:checked').val();
-                let outcomes = '';
-                if (betChoice === 'bet') {
-                    outcomes = '<p>If 7 or 11 is rolled, you lose your Don\'t Pass bet. If 2 or 3 is rolled, you win your Don\'t Pass bet. If 12 is rolled, it\'s a push.</p>';
-                } else {
-                    outcomes = '<p>No bet is placed. You only roll the dice and see the outcome.</p>';
-                }
-                $('#possible-outcomes').html(outcomes);
+        function updatePossibleOutcomes() {
+            const betChoice = $('input[name="bet_choice"]:checked').val();
+            let outcomes = '';
+            if (betChoice === 'bet') {
+                outcomes = '<p>If 7 or 11 is rolled, you lose your Don\'t Pass bet. If 2 or 3 is rolled, you win your Don\'t Pass bet. If 12 is rolled, it\'s a push.</p>';
+            } else {
+                outcomes = '<p>No bet is placed. You only roll the dice and see the outcome.</p>';
             }
-
-            $('#start-form').on('submit', function(event) {
-                event.preventDefault();
-                $.ajax({
-                    url: '/start',
-                    method: 'POST',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        $('#game-area').show();
-                        $('#start-form').hide();
-                        $('#results').html('<h4>Initial Bankroll: ' + response.initial_bankroll + '</h4>');
-                        $('#initial-bet').html('<p>Initial Bet: -$' + (response.initial_bankroll == 1000 ? '25' : '50') + ' for Don\'t Pass</p>');
-                        $('#current-bets').text(response.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                        $('#total-wagered').text(response.total_wagered);
-                        $('#current-bankroll').text(response.bankroll);
-                        $('#next-action-message').text(response.status);
-                        $('#next-bet-message').text(response.next_bet);
-                        $('#strikes').text(0);
-                        updatePossibleOutcomes();
-                        document.cookie = `session_id=${response.session_id}; path=/`;
-                    }
-                });
-            });
-
-
-$('input[name="bet_choice"]').on('change', function() {
-    updatePossibleOutcomes();
-});
+            $('#possible-outcomes').html(outcomes);
+        }
 
 $('#roll-form').on('submit', function(event) {
-    event.preventDefault();
-    $('.spinner-overlay').show();
-    $.ajax({
-        url: '/roll',
-        method: 'POST',
-        data: $(this).serialize(),
-        success: function(response) {
-            socket.emit('update_game_state', response);
-        }
-    });
-});
+            event.preventDefault();
+            $('.spinner-overlay').show();
+            console.log("Spinner shown");
+            $.ajax({
+                url: '/roll',
+                method: 'POST',
+                data: $(this).serialize(),
+                success: function(response) {
+                    socket.emit('update_game_state', response);
+                    console.log("Roll submitted", response);
+                }
+            });
+        });
 
-$('#show-summary-button').on('click', function() {
-    $.ajax({
-        url: '/summary',
-        method: 'GET',
-        success: function(response) {
-            socket.emit('update_game_summary', response);
-        }
-    });
-});
+        $('#show-summary-button').on('click', function() {
+            $.ajax({
+                url: '/summary',
+                method: 'GET',
+                success: function(response) {
+                    socket.emit('update_game_summary', response);
+                    console.log("Summary shown", response);
+                }
+            });
+        });
 
 $('#continue-game-button').on('click', function() {
     $.ajax({
@@ -294,41 +271,46 @@ $('#continue-game-button').on('click', function() {
             $('#show-summary-button').hide();
             $('#continue-game-button').hide();
             $('#reset-button').hide();
+            console.log("Game continued", response);
         }
     });
 });
 
 $('#reset-button').on('click', function() {
-    $('#summary').hide();
-    $('#start-form').show();
-    $('#game-area').hide();
-    $('#results').html('');
-    $('#show-summary-button').hide();
-    $('#continue-game-button').hide();
-    $('#reset-button').hide();
-});
+            $('#summary').hide();
+            $('#start-form').show();
+            $('#game-area').hide();
+            $('#results').html('');
+            $('#show-summary-button').hide();
+            $('#continue-game-button').hide();
+            $('#reset-button').hide();
+            console.log("Game reset");
+        });
+
 
 $('#new-game-button').on('click', function() {
-    $.ajax({
-        url: '/summary',
-        method: 'GET',
-        success: function(response) {
-            if (response.final_bankroll <= 0.5 * response.initial_bankroll) {
-                alert('Walk away: Your bankroll is less than 50% of the initial bankroll.');
-            } else if (response.final_bankroll >= 1.2 * response.initial_bankroll) {
-                alert('Walk away: Your bankroll is more than 20% above the initial bankroll.');
-            } else {
-                $('#summary').hide();
-                $('#start-form').show();
-                $('#game-area').hide();
-                $('#results').html('');
-                $('#show-summary-button').hide();
-                $('#continue-game-button').hide();
-                $('#reset-button').hide();
-            }
-        }
+            $.ajax({
+                url: '/summary',
+                method: 'GET',
+                success: function(response) {
+                    if (response.final_bankroll <= 0.5 * response.initial_bankroll) {
+                        alert('Walk away: Your bankroll is less than 50% of the initial bankroll.');
+                    } else if (response.final_bankroll >= 1.2 * response.initial_bankroll) {
+                        alert('Walk away: Your bankroll is more than 20% above the initial bankroll.');
+                    } else {
+                        $('#summary').hide();
+                        $('#start-form').show();
+                        $('#game-area').hide();
+                        $('#results').html('');
+                        $('#show-summary-button').hide();
+                        $('#continue-game-button').hide();
+                        $('#reset-button').hide();
+                    }
+                    console.log("New game started", response);
+                }
+            });
+        });
     });
-});
 });
 </script>
 </body>
