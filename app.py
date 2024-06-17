@@ -260,30 +260,28 @@ def home():
 def start_game():
     initial_bankroll = int(request.form['bankroll'])
     game = CrapsStateMachine(initial_bankroll)
-    game_id = db.games.insert_one(game.__dict__).inserted_id
-    session['game_id'] = str(game_id)
-    session['initial_bankroll'] = initial_bankroll
-    socketio.emit('update_game_state', {
-        'initial_bankroll': initial_bankroll,
-        'current_bets': game.current_bets,
-        'bankroll': game.bankroll,
-        'total_wagered': game.total_wagered
-    })
-    logging.info(f'Game started with bankroll: {initial_bankroll}, session: {session}')
-    return jsonify({
+    session_id = str(uuid.uuid4())
+    session[session_id] = str(db.games.insert_one(game.__dict__).inserted_id)
+    
+    response = make_response(jsonify({
         'status': 'Game started',
         'initial_bankroll': initial_bankroll,
         'current_bets': game.current_bets,
         'bankroll': game.bankroll,
-        'total_wagered': game.total_wagered
-    })
+        'total_wagered': game.total_wagered,
+        'session_id': session_id
+    }))
+    response.set_cookie('session_id', session_id)
+    logging.info(f'Game started with bankroll: {initial_bankroll}, session: {session}')
+    return response
 
 @app.route('/roll', methods=['POST'])
 def roll():
-    if 'game_id' not in session:
+    session_id = request.cookies.get('session_id')
+    if not session_id or session_id not in session:
         return jsonify({'error': 'No active game'}), 400
     
-    game_id = ObjectId(session['game_id'])
+    game_id = ObjectId(session[session_id])
     game_data = db.games.find_one({'_id': game_id})
     game = CrapsStateMachine(game_data['initial_bankroll'])
     game.__dict__.update(game_data)
