@@ -139,6 +139,37 @@
         <div class="spinner"></div>
     </div>
     <script>
+        function getSessionId() {
+    let sessionId = getCookie('sessionId');
+    if (!sessionId) {
+        sessionId = generateUniqueId();
+        setCookie('sessionId', sessionId, 7);
+    }
+    return sessionId;
+}
+
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+function setCookie(name, value, days) {
+    let expires = "";
+    if (days) {
+        const date = new Date();
+        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+        expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
+}
+
+function generateUniqueId() {
+    return 'xxxx-xxxx-xxxx-xxxx'.replace(/[x]/g, function() {
+        const r = Math.random() * 16 | 0, v = r & 0x3 | 0x8;
+        return v.toString(16);
+    });
+}
         $(document).ready(function() {
             var socket = io.connect("https://mq-craps-aca54a5fd2a3.herokuapp.com");
 
@@ -195,12 +226,13 @@
                 $('#possible-outcomes').html(outcomes);
             }
 
-$('#start-form').on('submit', function(event) {
+            $('#start-form').on('submit', function(event) {
     event.preventDefault();
+    const sessionId = getSessionId();
     $.ajax({
         url: '/start',
         method: 'POST',
-        data: $(this).serialize(),
+        data: $(this).serialize() + `&sessionId=${sessionId}`,
         success: function(response) {
             $('#game-area').show();
             $('#start-form').hide();
@@ -223,12 +255,12 @@ $('input[name="bet_choice"]').on('change', function() {
 
 $('#roll-form').on('submit', function(event) {
     event.preventDefault();
-    // Show the spinner
+    const sessionId = getSessionId();
     $('.spinner-overlay').show();
     $.ajax({
         url: '/roll',
         method: 'POST',
-        data: $(this).serialize(),
+        data: $(this).serialize() + `&sessionId=${sessionId}`,
         success: function(response) {
             socket.emit('update_game_state', response);
         }

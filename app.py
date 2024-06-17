@@ -3,8 +3,9 @@ import logging
 import os
 import sys
 import gevent.monkey
+import uuid
 from dotenv import load_dotenv
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, make_response, render_template, request, jsonify, session
 from flask_session import Session
 from flask_socketio import SocketIO, emit
 from pymongo import MongoClient
@@ -46,6 +47,11 @@ app.config['SESSION_MONGODB_DB'] = 'craps_game_sessions'
 app.config['SESSION_MONGODB_COLLECT'] = 'sessions'
 Session(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+
+# Generate Session ID
+
+def generate_session_id():
+    return str(uuid.uuid4())
 
 # Set up MongoDB connection
 MONGO_URI = os.getenv('MONGO_URI')
@@ -242,6 +248,12 @@ class CrapsStateMachine:
 
 @app.route('/')
 def home():
+    session_id = request.cookies.get('session_id')
+    if not session_id:
+        session_id = generate_session_id()
+        resp = make_response(render_template('index.html'))
+        resp.set_cookie('session_id', session_id)
+        return resp
     return render_template('index.html')
 
 @app.route('/start', methods=['POST'])
@@ -310,7 +322,7 @@ def summary():
 if __name__ == '__main__':
     if os.environ.get('FLASK_ENV') == 'development':
         port = int(os.environ.get("PORT", 5000))
-        socketio.run(app, host='0.0.0.0', port=port, debug=True)
+        socketio.run(app, host='0.0.0.0', port=5001, debug=True)
     else:
         port = int(os.environ.get("PORT", 5000))
         from gevent import pywsgi
