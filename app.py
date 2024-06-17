@@ -259,9 +259,12 @@ def home():
 @app.route('/start', methods=['POST'])
 def start_game():
     initial_bankroll = int(request.form['bankroll'])
+    session_id = request.cookies.get('session_id')
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    
     game = CrapsStateMachine(initial_bankroll)
-    session_id = str(uuid.uuid4())
-    session[session_id] = str(db.games.insert_one(game.__dict__).inserted_id)
+    game_id = db.games.insert_one(game.__dict__).inserted_id
     
     response = make_response(jsonify({
         'status': 'Game started',
@@ -271,33 +274,47 @@ def start_game():
         'total_wagered': game.total_wagered,
         'session_id': session_id
     }))
-    response.set_cookie('session_id', session_id)
-    logging.info(f'Game started with bankroll: {initial_bankroll}, session: {session}')
+    response.set_cookie('session_id', session_id, max_age=60*60*24*7)  # Cookie valid for 7 days
+    
+    db.sessions.update_one(
+        {'session_id': session_id},
+        {'$set': {'game_id': str(game_id), 'initial_bankroll': initial_bankroll}},
+        upsert=True
+    )
+    
     return response
 
 @app.route('/roll', methods=['POST'])
 def roll():
     session_id = request.cookies.get('session_id')
-    if not session_id or session_id not in session:
-        return jsonify({'error': 'No active game'}), 400
-    
-    game_id = ObjectId(session[session_id])
+    if not session_id:
+        return jsonify({'error': 'No active session'}), 400
+
+    session_data = db.sessions.find_one({'session_id': session_id})
+    if not session_data:
+        return jsonify({'error': 'No active game in session'}), 400
+
+    game_id = ObjectId(session_data['game_id'])
     game_data = db.games.find_one({'_id': game_id})
     game = CrapsStateMachine(game_data['initial_bankroll'])
     game.__dict__.update(game_data)
     bet_choice = request.form['bet_choice']
     response = game.handle_event('roll', bet_choice)
     db.games.update_one({'_id': game_id}, {'$set': game.__dict__})
-    socketio.emit('update_game_state', response)
-    logging.info(f'Roll executed with bet choice: {bet_choice}, session: {session}')
+    socketio.emit('update_game_state', response, room=session_id)
     return jsonify(response)
 
 @app.route('/summary', methods=['GET'])
 def summary():
-    if 'game_id' not in session:
-        return jsonify({'error': 'No active game'}), 400
-    
-    game_id = ObjectId(session['game_id'])
+    session_id = request.cookies.get('session_id')
+    if not session_id:
+        return jsonify({'error': 'No active session'}), 400
+
+    session_data = db.sessions.find_one({'session_id': session_id})
+    if not session_data:
+        return jsonify({'error': 'No active game in session'}), 400
+
+    game_id = ObjectId(session_data['game_id'])
     game_data = db.games.find_one({'_id': game_id})
     
     summary = {
@@ -313,8 +330,7 @@ def summary():
         'strikes': game_data['strikes'],
         'total_wagered': game_data['total_wagered']
     }
-    socketio.emit('update_game_summary', summary)
-    logging.info(f'Game summary: {summary}')
+    socketio.emit('update_game_summary', summary, room=session_id)
     return jsonify(summary)
 
 if __name__ == '__main__':
