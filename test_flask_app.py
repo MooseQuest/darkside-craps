@@ -1,42 +1,33 @@
-from selenium import webdriver
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
+import os
 import time
 
-# Path to your webdriver executable
-# For example, if you're using Chrome, the path should point to your chromedriver
-webdriver_path = '/path/to/chromedriver'
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
-# Initialize the WebDriver
-driver = webdriver.Chrome(executable_path=webdriver_path)
+BASE_URL = os.environ.get('CRAPS_URL', 'http://127.0.0.1:5000')
+
+# Selenium 4.6+ ships with Selenium Manager — no manual chromedriver path needed.
+driver = webdriver.Chrome()
 
 try:
-    # Open the Flask application
-    driver.get("http://127.0.0.1:5000")
+    driver.get(BASE_URL)
 
-    # Find the input element for the bankroll
-    bankroll_input = driver.find_element(By.ID, "bankroll")
-    
-    # Clear the input field just in case there's any pre-filled text
-    bankroll_input.clear()
-    
-    # Enter a test bankroll amount
-    bankroll_input.send_keys("1000")
-    
-    # Find the submit button and click it
-    submit_button = driver.find_element(By.CSS_SELECTOR, "button.btn-primary")
+    bankroll_select = driver.find_element(By.ID, "bankroll")
+    bankroll_select.click()
+
+    submit_button = driver.find_element(By.CSS_SELECTOR, "button.btn-primary[type='submit']")
     submit_button.click()
-    
-    # Wait for the results to be displayed (this is a simple wait; you can implement a more sophisticated wait if needed)
-    time.sleep(2)
-    
-    # Find the results div
+
+    # Wait for the game area to become visible after starting
+    WebDriverWait(driver, 5).until(
+        EC.visibility_of_element_located((By.ID, "game-area"))
+    )
+
     results_div = driver.find_element(By.ID, "results")
-    
-    # Print the results
     print("Simulation Results:")
     print(results_div.text)
-    
+
 finally:
-    # Close the WebDriver
     driver.quit()

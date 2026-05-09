@@ -50,11 +50,13 @@
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
-            display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             display: none;
+        }
+        .spinner-overlay.active {
+            display: flex;
         }
         .spinner {
             width: 3rem;
@@ -98,6 +100,7 @@
                 </div>
                 <div id="possible-outcomes" class="mb-3"></div>
                 <button type="submit" class="btn btn-secondary">Roll Dice</button>
+                <button type="button" id="show-summary-button" class="btn btn-info ml-2" style="display:none;">Show Summary</button>
             </form>
             <div class="container-flex">
                 <div class="left">
@@ -129,7 +132,6 @@
         <div id="summary" class="mt-4" style="display:none;">
             <h3>Game Summary</h3>
             <pre id="summary-results"></pre>
-            <button id="show-summary-button" class="btn btn-info" style="display:none;">Show Summary</button>
             <button id="continue-game-button" class="btn btn-success" style="display:none;">Continue Game</button>
             <button id="reset-button" class="btn btn-secondary" style="display:none;">Reset Game</button>
             <button id="new-game-button" class="btn btn-primary">New Game</button>
@@ -171,19 +173,35 @@
             });
         }
         $(document).ready(function() {
-            var socket = io.connect("https://mq-craps-aca54a5fd2a3.herokuapp.com");
+            // Connect to socket.io on the same origin so this works locally and in prod.
+            var socket = io.connect();
 
-            socket.on('update_game_state', function(data) {
-                $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
-                $('#next-action-message').text(data.status);
-                $('#next-bet-message').text(data.next_bet);
-                $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
-                $('#current-bankroll').text(data.bankroll);
-                $('#total-wagered').text(data.total_wagered);
-                $('#points-established').html(data.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
-                $('#dice-roll').text(data.dice_roll.join(', '));
-                $('#dice-total').text(data.roll_sum);
-                $('#strikes').text(data.strikes);
+            function renderGameState(data) {
+                if (data.dice_roll && data.roll_count !== undefined) {
+                    $('#results').append('<p>Roll ' + data.roll_count + ': ' + data.dice_roll.join(',') + ' (Total: ' + data.roll_sum + ')</p>');
+                }
+                if (data.status) $('#next-action-message').text(data.status);
+                $('#next-bet-message').text(data.next_bet || '');
+                if (data.current_bets) {
+                    $('#current-bets').text(data.current_bets.reduce((sum, bet) => sum + bet.bet, 0));
+                }
+                if (data.bankroll !== undefined) $('#current-bankroll').text(data.bankroll);
+                if (data.total_wagered !== undefined) $('#total-wagered').text(data.total_wagered);
+                if (data.established_points) {
+                    $('#points-established').html(data.established_points.map(point => '<span class="point">' + point + '</span>').join(' '));
+                }
+                if (data.dice_roll) {
+                    $('#dice-roll').text(data.dice_roll.join(', '));
+                    $('#dice-total').text(data.roll_sum);
+                }
+                if (data.strikes !== undefined) $('#strikes').text(data.strikes);
+
+                if (data.summary_button) {
+                    $('#show-summary-button').show();
+                }
+                if (data.continue_button) {
+                    $('#continue-game-button').show();
+                }
 
                 // Scroll to the bottom of the results container to make the latest roll visible
                 var resultsContainer = document.getElementById('results');
@@ -191,17 +209,19 @@
 
                 // Hide the spinner
                 $('.spinner-overlay').hide();
-            });
+            }
 
-            socket.on('update_game_summary', function(data) {
-                $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll + 
-                                            '\nFinal Bankroll: ' + data.final_bankroll + 
-                                            '\nRoll Count: ' + data.roll_count + 
-                                            '\nResults: ' + data.results.map(dice => dice.join(',')).join(' | ') + 
-                                            '\nPoints Established: ' + data.points_established + 
-                                            '\nPoints Hit: ' + data.points_hit + 
-                                            '\nPoints Lost: ' + data.points_lost + 
-                                            '\nWins: ' + data.wins + 
+            socket.on('update_game_state', renderGameState);
+
+            function renderGameSummary(data) {
+                $('#summary-results').html('Initial Bankroll: ' + data.initial_bankroll +
+                                            '\nFinal Bankroll: ' + data.final_bankroll +
+                                            '\nRoll Count: ' + data.roll_count +
+                                            '\nResults: ' + data.results.map(dice => dice.join(',')).join(' | ') +
+                                            '\nPoints Established: ' + data.points_established +
+                                            '\nPoints Hit: ' + data.points_hit +
+                                            '\nPoints Lost: ' + data.points_lost +
+                                            '\nWins: ' + data.wins +
                                             '\nLosses: ' + data.losses +
                                             '\nStrikes: ' + data.strikes +
                                             '\nTotal Amount Wagered Over All Games: ' + data.total_wagered);
@@ -213,7 +233,9 @@
 
                 // Hide the spinner
                 $('.spinner-overlay').hide();
-            });
+            }
+
+            socket.on('update_game_summary', renderGameSummary);
 
             function updatePossibleOutcomes() {
                 const betChoice = $('input[name="bet_choice"]:checked').val();
@@ -262,7 +284,14 @@ $('#roll-form').on('submit', function(event) {
         method: 'POST',
         data: $(this).serialize(),
         success: function(response) {
-            socket.emit('update_game_state', response);
+            // Render the response directly so the UI updates even if the
+            // websocket isn't connected. The server also broadcasts the same
+            // payload via socket.io for any other listeners.
+            renderGameState(response);
+        },
+        error: function() {
+            $('.spinner-overlay').hide();
+            alert('Roll failed. Try starting a new game.');
         }
     });
 });
@@ -272,7 +301,7 @@ $('#show-summary-button').on('click', function() {
         url: '/summary',
         method: 'GET',
         success: function(response) {
-            socket.emit('update_game_summary', response);
+            renderGameSummary(response);
         }
     });
 });
