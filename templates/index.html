@@ -482,6 +482,184 @@
             box-shadow: 0 0 24px rgba(255, 0, 170, 0.4);
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ---- Walkthrough ---- */
+        .wt-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 14, 44, 0.65);
+            backdrop-filter: blur(1px);
+            -webkit-backdrop-filter: blur(1px);
+            z-index: 1500;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.18s ease;
+            /* Visual dim only — spotlight + card draw above; clicks pass through
+               to the page so the user can still interact with highlighted UI. */
+            pointer-events: none;
+        }
+        .wt-overlay.active { display: block; opacity: 1; }
+
+        /* "Spotlight" — a transparent ring that frames a target element */
+        .wt-spotlight {
+            position: fixed;
+            border-radius: 8px;
+            box-shadow:
+                0 0 0 9999px rgba(10, 14, 44, 0.78),
+                0 0 0 2px var(--neon-cyan),
+                0 0 24px rgba(0, 255, 225, 0.5);
+            z-index: 1501;
+            pointer-events: none;
+            transition: all 0.25s cubic-bezier(.36,.07,.19,.97);
+            display: none;
+        }
+        .wt-spotlight.active { display: block; }
+
+        .wt-card {
+            position: fixed;
+            z-index: 1502;
+            max-width: 380px;
+            background: linear-gradient(180deg, var(--bg-mid) 0%, var(--bg-deep) 100%);
+            border: 1px solid var(--neon-magenta);
+            border-radius: 8px;
+            padding: 20px 22px;
+            box-shadow:
+                0 0 24px rgba(255, 0, 170, 0.5),
+                inset 0 0 30px rgba(0, 255, 225, 0.06);
+            display: none;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .wt-card.active { display: block; }
+        .wt-card.centered {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 460px;
+        }
+        .wt-card .wt-step {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 6px rgba(0, 255, 225, 0.5);
+            margin-bottom: 6px;
+        }
+        .wt-card h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            color: var(--neon-magenta);
+            text-shadow: 0 0 10px rgba(255, 0, 170, 0.4);
+            margin: 0 0 10px;
+        }
+        .wt-card .wt-body {
+            color: var(--text-primary);
+            font-size: 13px;
+            line-height: 1.55;
+            margin-bottom: 14px;
+        }
+        .wt-card .wt-body strong { color: var(--neon-cyan); font-weight: 700; }
+        .wt-card .wt-body em { color: var(--neon-magenta); font-style: normal; font-weight: 700; }
+        .wt-card .wt-body code {
+            background: rgba(0, 0, 0, 0.45);
+            border: 1px solid rgba(0, 255, 225, 0.25);
+            color: var(--neon-cyan);
+            padding: 1px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        .wt-card .wt-body .dice-row {
+            display: flex;
+            gap: 12px;
+            margin: 12px 0;
+            justify-content: center;
+            min-height: auto;
+        }
+        .wt-card .wt-body .die {
+            width: 46px;
+            height: 46px;
+            padding: 6px;
+            border-radius: 6px;
+        }
+        .wt-card .wt-body .pip { width: 7px; height: 7px; }
+        .wt-card .wt-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .wt-card .wt-progress {
+            color: var(--text-secondary);
+            font-size: 11px;
+            letter-spacing: 0.2em;
+        }
+        .wt-card .wt-actions { display: flex; gap: 8px; }
+        .wt-btn {
+            padding: 8px 16px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            border: 1px solid var(--text-secondary);
+            background: transparent;
+            color: var(--text-secondary);
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .wt-btn:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 0 0 10px rgba(0, 255, 225, 0.3);
+        }
+        .wt-btn-primary {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            background: rgba(0, 255, 225, 0.08);
+            text-shadow: 0 0 6px rgba(0, 255, 225, 0.4);
+        }
+        .wt-btn-primary:hover {
+            background: var(--neon-cyan);
+            color: #001b1f;
+            text-shadow: none;
+        }
+        .wt-card.await-action {
+            border-color: var(--neon-yellow);
+            box-shadow: 0 0 24px rgba(255, 208, 0, 0.4);
+        }
+        .wt-card.await-action h3 { color: var(--neon-yellow); text-shadow: 0 0 10px rgba(255, 208, 0, 0.4); }
+        .wt-card.await-action .wt-step { color: var(--neon-yellow); text-shadow: 0 0 6px rgba(255, 208, 0, 0.5); }
+
+        /* "Need help?" pill in the corner */
+        .wt-relaunch {
+            position: fixed;
+            bottom: 18px;
+            right: 18px;
+            z-index: 999;
+            padding: 8px 14px;
+            background: rgba(13, 18, 56, 0.85);
+            border: 1px solid var(--neon-magenta);
+            color: var(--neon-magenta);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            letter-spacing: 0.25em;
+            text-transform: uppercase;
+            border-radius: 20px;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 0 14px rgba(255, 0, 170, 0.3);
+            transition: all 0.15s;
+        }
+        .wt-relaunch:hover {
+            color: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 14px rgba(0, 255, 225, 0.4);
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
@@ -600,6 +778,23 @@
     <div class="spinner-overlay">
         <div class="spinner"></div>
     </div>
+
+    <!-- ---------- WALKTHROUGH ---------- -->
+    <div class="wt-overlay" id="wt-overlay"></div>
+    <div class="wt-spotlight" id="wt-spotlight"></div>
+    <div class="wt-card" id="wt-card">
+        <div class="wt-step" id="wt-step-label">Step 1 of —</div>
+        <h3 id="wt-title">—</h3>
+        <div class="wt-body" id="wt-body">—</div>
+        <div class="wt-controls">
+            <span class="wt-progress" id="wt-progress">— · —</span>
+            <div class="wt-actions">
+                <button type="button" class="wt-btn" id="wt-skip">Skip</button>
+                <button type="button" class="wt-btn wt-btn-primary" id="wt-next">Next ▸</button>
+            </div>
+        </div>
+    </div>
+    <button type="button" class="wt-relaunch" id="wt-relaunch" title="Replay walkthrough">? Tour</button>
 
     <script>
     // ---------- die rendering helpers ----------
@@ -814,6 +1009,285 @@
                 }
             });
         });
+
+        // ============================================================
+        //                       WALKTHROUGH
+        // ============================================================
+        // Guided onboarding tour. Auto-launches on first visit, hides
+        // permanently after the user finishes one full cycle. Click the
+        // "? Tour" pill in the corner to replay.
+        //
+        // Each step:
+        //   target?       — CSS selector to spotlight (omit for centered modal)
+        //   title         — bold heading
+        //   body          — HTML body copy
+        //   placement?    — 'right' | 'left' | 'top' | 'bottom' (default 'bottom')
+        //   awaitAction?  — { selector, event } — Next button hides; user must
+        //                   trigger this event on the target to advance
+        //   onEnter?      — function to run when step activates
+        //   onExit?       — function to run when step advances
+        //   when?         — function returning bool; step is skipped if false
+        // ------------------------------------------------------------
+        const WALKTHROUGH_KEY = 'darkside_walkthrough_v1_completed';
+
+        const STEPS = [
+            {
+                title: '◆ Welcome to Dark Side Craps',
+                body: `<p>This is a simulator for the <strong>Long Dark Side strategy</strong> — a disciplined approach to playing the <em>Don't Pass</em> line.</p>
+                       <p>Most players bet <em>with</em> the shooter. The Dark Side bets <em>against</em> them: you win when the shooter rolls a 7 before repeating their point.</p>
+                       <p style="color: var(--text-secondary); font-size: 12px;">Goal: stay at the table longer with smaller, steadier swings — not chase one big win.</p>`,
+            },
+            {
+                target: '#bankroll',
+                placement: 'bottom',
+                title: 'Pick your bankroll',
+                body: `<p>Start at <code>$1,000</code> or <code>$2,000</code>. Bet sizes scale to whichever you pick:</p>
+                       <p style="font-size: 12px;">
+                         <strong>$1,000:</strong> $25 Don't Pass · $30/$60/$90 lay bets<br>
+                         <strong>$2,000:</strong> $50 Don't Pass · $60/$75/$100 lay bets
+                       </p>
+                       <p>Larger bankroll = more cushion, longer expected play.</p>`,
+            },
+            {
+                target: '#start-form button[type="submit"]',
+                placement: 'top',
+                title: 'Place the opening bet',
+                body: `<p>Clicking <strong>Start Game</strong> places your initial <em>Don't Pass</em> bet on the come-out roll.</p>
+                       <p style="font-size: 12px;">Click it now to begin.</p>`,
+                awaitAction: { selector: '#start-form', event: 'submit' },
+            },
+            {
+                target: '.stat-grid',
+                placement: 'bottom',
+                title: 'Your scoreboard',
+                body: `<p>Four numbers tell you everything:</p>
+                       <ul style="font-size: 12px; padding-left: 18px; margin: 8px 0;">
+                         <li><strong>Bankroll</strong> — what you've got left</li>
+                         <li><strong>Total Wagered</strong> — total cash put on the felt</li>
+                         <li><strong>Current Bet</strong> — money currently exposed on the table</li>
+                         <li><strong>Strikes</strong> — points the shooter has hit (3 = stop placing new bets)</li>
+                       </ul>`,
+                when: () => $('#game-area').is(':visible'),
+            },
+            {
+                target: '#dice-total',
+                placement: 'left',
+                title: 'Reading the dice',
+                body: `<div class="dice-row">
+                          <div class="die" id="wt-die-demo-1"></div>
+                          <div class="die" id="wt-die-demo-2"></div>
+                       </div>
+                       <p><strong>Come-out roll outcomes:</strong></p>
+                       <ul style="font-size: 12px; padding-left: 18px; margin: 8px 0;">
+                         <li><em>7 or 11</em> → you <strong>lose</strong> Don't Pass</li>
+                         <li><em>2 or 3</em> → you <strong>win</strong> Don't Pass</li>
+                         <li><em>12</em> → push (no change)</li>
+                         <li><em>4, 5, 6, 8, 9, 10</em> → that becomes the <strong>point</strong></li>
+                       </ul>`,
+                onEnter: () => {
+                    setTimeout(() => {
+                        if (window.renderDie) {
+                            window.renderDie(document.getElementById('wt-die-demo-1'), 3);
+                            window.renderDie(document.getElementById('wt-die-demo-2'), 4);
+                        }
+                    }, 50);
+                },
+                when: () => $('#game-area').is(':visible'),
+            },
+            {
+                target: '#roll-form button[type="submit"]',
+                placement: 'top',
+                title: 'Roll the dice',
+                body: `<p>Click <strong>Roll Dice</strong> to throw. Watch what happens to the bankroll, current bet, and any new point.</p>
+                       <p style="font-size: 12px;">Try it now.</p>`,
+                awaitAction: { selector: '#roll-form', event: 'submit' },
+                when: () => $('#game-area').is(':visible'),
+            },
+            {
+                target: '#points-established',
+                placement: 'left',
+                title: 'Why we lay odds',
+                body: `<p>Whenever a number 4 / 5 / 6 / 8 / 9 / 10 rolls, it becomes a <strong>point</strong>. We immediately place a <em>Lay Odds</em> bet behind it.</p>
+                       <p style="font-size: 12px;">Lay Odds win when the shooter rolls a <strong>7 before</strong> repeating that point. The longer points stack up, the bigger the 7-out payday.</p>
+                       <p style="font-size: 12px; color: var(--text-secondary);">"Next Bet" tells you the lay amount for the current point.</p>`,
+                when: () => $('#game-area').is(':visible'),
+            },
+            {
+                target: '#strikes',
+                placement: 'bottom',
+                title: 'The 3-strike rule',
+                body: `<p>Every time a point <em>repeats</em> before a 7, that's a <strong>strike</strong>. You lose that lay-odds bet.</p>
+                       <p style="font-size: 12px;">Three strikes? <strong>Stop placing new Don't Come bets.</strong> Wait for a 7 before re-engaging. This is the discipline that keeps the bankroll alive.</p>`,
+                when: () => $('#game-area').is(':visible'),
+            },
+            {
+                title: '✓ When to walk away',
+                body: `<p>Two thresholds end the session:</p>
+                       <ul style="font-size: 13px; padding-left: 18px;">
+                         <li>Bankroll drops <strong>below 50%</strong> of starting → walk away (preserve capital)</li>
+                         <li>Bankroll climbs <strong>above 120%</strong> of starting → walk away (lock in the win)</li>
+                       </ul>
+                       <p style="font-size: 12px; color: var(--text-secondary);">The simulator warns you when you hit either bound.</p>`,
+            },
+            {
+                title: '◆ You\'re ready',
+                body: `<p>That's the whole strategy:</p>
+                       <p style="font-size: 13px;">
+                         <strong>Bet Don't Pass</strong> → <strong>lay odds on points</strong> → <strong>wait for the 7</strong> → <strong>walk when limits hit</strong>.
+                       </p>
+                       <p style="font-size: 12px; color: var(--text-secondary);">This walkthrough won't show again. Tap the <strong style="color: var(--neon-magenta);">? Tour</strong> pill in the corner to replay.</p>`,
+                onExit: () => { try { localStorage.setItem(WALKTHROUGH_KEY, '1'); } catch (e) {} },
+            },
+        ];
+
+        let wtIndex = 0;
+        let wtAwaitHandler = null;
+
+        function wtPositionCard(target, placement) {
+            const card = document.getElementById('wt-card');
+            const spot = document.getElementById('wt-spotlight');
+            card.classList.remove('centered');
+
+            if (!target) {
+                spot.classList.remove('active');
+                card.classList.add('centered');
+                card.style.top = ''; card.style.left = ''; card.style.transform = '';
+                return;
+            }
+
+            const el = document.querySelector(target);
+            if (!el) {
+                // Target missing — fall back to centered
+                spot.classList.remove('active');
+                card.classList.add('centered');
+                return;
+            }
+
+            const r = el.getBoundingClientRect();
+            const PAD = 8;
+            spot.style.top = (r.top - PAD) + 'px';
+            spot.style.left = (r.left - PAD) + 'px';
+            spot.style.width = (r.width + PAD * 2) + 'px';
+            spot.style.height = (r.height + PAD * 2) + 'px';
+            spot.classList.add('active');
+
+            // Position the card adjacent to the target
+            const cardW = 380, cardH = card.offsetHeight || 240, GAP = 16;
+            let top, left;
+            switch (placement) {
+                case 'top':
+                    top = r.top - cardH - GAP;
+                    left = r.left + r.width / 2 - cardW / 2;
+                    break;
+                case 'left':
+                    top = r.top + r.height / 2 - cardH / 2;
+                    left = r.left - cardW - GAP;
+                    break;
+                case 'right':
+                    top = r.top + r.height / 2 - cardH / 2;
+                    left = r.right + GAP;
+                    break;
+                case 'bottom':
+                default:
+                    top = r.bottom + GAP;
+                    left = r.left + r.width / 2 - cardW / 2;
+            }
+            // Clamp to viewport
+            const maxLeft = window.innerWidth - cardW - 12;
+            const maxTop = window.innerHeight - cardH - 12;
+            top = Math.max(12, Math.min(maxTop, top));
+            left = Math.max(12, Math.min(maxLeft, left));
+            card.style.top = top + 'px';
+            card.style.left = left + 'px';
+            card.style.transform = 'none';
+        }
+
+        function wtRenderStep(idx) {
+            // Skip steps whose `when` returns false
+            while (idx < STEPS.length && STEPS[idx].when && !STEPS[idx].when()) {
+                idx++;
+            }
+            if (idx >= STEPS.length) {
+                wtFinish(true);
+                return;
+            }
+            wtIndex = idx;
+            const s = STEPS[idx];
+            $('#wt-step-label').text('Step ' + (idx + 1) + ' of ' + STEPS.length);
+            $('#wt-progress').text((idx + 1) + ' · ' + STEPS.length);
+            $('#wt-title').html(s.title);
+            $('#wt-body').html(s.body);
+
+            const card = $('#wt-card');
+            card.toggleClass('await-action', !!s.awaitAction);
+            $('#wt-next').toggle(!s.awaitAction);
+
+            // Render BEFORE positioning so card height is correct
+            $('#wt-overlay').addClass('active');
+            card.addClass('active');
+
+            // Defer positioning until layout settles
+            requestAnimationFrame(() => wtPositionCard(s.target, s.placement));
+
+            if (s.onEnter) s.onEnter();
+
+            if (wtAwaitHandler) {
+                wtAwaitHandler.off();
+                wtAwaitHandler = null;
+            }
+            if (s.awaitAction) {
+                const $el = $(s.awaitAction.selector);
+                wtAwaitHandler = $el;
+                $el.one(s.awaitAction.event, function () {
+                    setTimeout(() => wtNext(), 350);
+                });
+            }
+        }
+
+        function wtNext() {
+            const cur = STEPS[wtIndex];
+            if (cur && cur.onExit) cur.onExit();
+            wtRenderStep(wtIndex + 1);
+        }
+
+        function wtFinish(markCompleted) {
+            $('#wt-overlay').removeClass('active');
+            $('#wt-card').removeClass('active');
+            $('#wt-spotlight').removeClass('active');
+            if (wtAwaitHandler) { wtAwaitHandler.off(); wtAwaitHandler = null; }
+            if (markCompleted) {
+                try { localStorage.setItem(WALKTHROUGH_KEY, '1'); } catch (e) {}
+            }
+        }
+
+        function wtStart() {
+            wtIndex = 0;
+            wtRenderStep(0);
+        }
+
+        $('#wt-next').on('click', wtNext);
+        $('#wt-skip').on('click', () => wtFinish(true));
+        $('#wt-relaunch').on('click', wtStart);
+
+        // Reposition on window resize / scroll
+        window.addEventListener('resize', () => {
+            const s = STEPS[wtIndex];
+            if (s && $('#wt-card').hasClass('active')) wtPositionCard(s.target, s.placement);
+        });
+        window.addEventListener('scroll', () => {
+            const s = STEPS[wtIndex];
+            if (s && s.target && $('#wt-card').hasClass('active')) wtPositionCard(s.target, s.placement);
+        }, { passive: true });
+
+        // Auto-launch for first-time visitors
+        try {
+            if (!localStorage.getItem(WALKTHROUGH_KEY)) {
+                setTimeout(wtStart, 400);
+            }
+        } catch (e) { /* localStorage blocked → skip auto-launch */ }
+
+        // Expose helpers for the walkthrough demo dice
+        window.renderDie = renderDie;
     });
     </script>
 </body>
