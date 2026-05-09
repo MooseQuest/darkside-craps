@@ -1,38 +1,29 @@
-import requests
 import json
+import os
+import sys
 import time
 
-BASE_URL = 'http://127.0.0.1:5000'
+import requests
+
+BASE_URL = os.environ.get('CRAPS_URL', 'http://127.0.0.1:5000')
+
 
 def start_game(session, bankroll, log_file='bet_tracker.log'):
-    try:
-        response = session.post(f'{BASE_URL}/start', data={'bankroll': bankroll})
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error starting game: {e}")
-        log_result(log_file, f"Error starting game: {e}")
-        return None
+    response = session.post(f'{BASE_URL}/start', data={'bankroll': bankroll})
+    response.raise_for_status()
+    return response.json()
+
 
 def roll_dice(session, bet_choice, log_file):
-    try:
-        response = session.post(f'{BASE_URL}/roll', data={'bet_choice': bet_choice})
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error rolling dice: {e}")
-        log_result(log_file, f"Error rolling dice: {e}\nResponse: {e.response.text}")
-        return None
+    response = session.post(f'{BASE_URL}/roll', data={'bet_choice': bet_choice})
+    response.raise_for_status()
+    return response.json()
+
 
 def get_summary(session, log_file):
-    try:
-        response = session.get(f'{BASE_URL}/summary')
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Error getting summary: {e}")
-        log_result(log_file, f"Error getting summary: {e}\nResponse: {e.response.text}")
-        return None
+    response = session.get(f'{BASE_URL}/summary')
+    response.raise_for_status()
+    return response.json()
 
 def log_result(log_file, message):
     with open(log_file, 'a') as file:
@@ -48,50 +39,53 @@ def check_for_anomalies(response, log_file):
 def main():
     log_file = 'bet_tracker.log'
     initial_bankroll = 1000
+    failures = []
 
     session = requests.Session()
 
-    # Start the game
-    game_data = start_game(session, initial_bankroll)
-    if game_data:
+    try:
+        game_data = start_game(session, initial_bankroll)
         print("Game started:", game_data)
         log_result(log_file, f"Game started: {json.dumps(game_data)}")
-    else:
-        return
+        if game_data.get('initial_bankroll') != initial_bankroll:
+            failures.append(f"start: initial_bankroll mismatch ({game_data.get('initial_bankroll')!r})")
+    except Exception as e:
+        print(f"FAIL start_game: {e}", file=sys.stderr)
+        sys.exit(1)
 
-    # Sequence of dice rolls
-    dice_sequence = [
-        ('bet', '6,2'),  # Roll 8
-        ('bet', '4,2'),  # Roll 6
-        ('bet', '1,1'),  # Roll 2
-        ('bet', '3,4'),  # Roll 7
-        ('bet', '5,1'),  # Roll 6
-        ('bet', '6,3'),  # Roll 9
-        ('bet', '5,4'),  # Roll 9
-        ('bet', '3,3'),  # Roll 6
-        ('bet', '2,5'),  # Roll 7
-        ('bet', '4,4')   # Roll 8
-    ]
-
-    for bet_choice, dice in dice_sequence:
-        response = roll_dice(session, bet_choice, log_file)
-        if response:
-            print("Roll response:", response)
-            log_result(log_file, f"Roll response: {json.dumps(response)}")
+    for i in range(10):
+        try:
+            response = roll_dice(session, 'bet', log_file)
+            print(f"Roll {i+1}:", response)
+            log_result(log_file, f"Roll {i+1}: {json.dumps(response)}")
             check_for_anomalies(response, log_file)
-        else:
-            break
+            if 'roll_sum' not in response or 'bankroll' not in response:
+                failures.append(f"roll {i+1}: response missing required keys")
+        except Exception as e:
+            print(f"FAIL roll {i+1}: {e}", file=sys.stderr)
+            sys.exit(1)
+        time.sleep(0.2)
 
-        # Delay to simulate time between rolls
-        time.sleep(1)
-
-    # Get summary
-    summary = get_summary(session, log_file)
-    if summary:
+    try:
+        summary = get_summary(session, log_file)
         print("Game summary:", summary)
         log_result(log_file, f"Game summary: {json.dumps(summary)}")
-    else:
-        print("Failed to get game summary.")
+        for required_key in ('initial_bankroll', 'final_bankroll', 'roll_count', 'total_wagered'):
+            if required_key not in summary:
+                failures.append(f"summary: missing {required_key!r}")
+        if summary.get('roll_count', 0) < 10:
+            failures.append(f"summary: roll_count={summary.get('roll_count')} (expected >=10)")
+    except Exception as e:
+        print(f"FAIL get_summary: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if failures:
+        print("\nTEST FAILURES:", file=sys.stderr)
+        for f in failures:
+            print(f"  - {f}", file=sys.stderr)
+        sys.exit(1)
+    print("\nAll smoke checks passed.")
+
 
 if __name__ == '__main__':
     main()
