@@ -18,6 +18,10 @@
 }
 
 * { box-sizing: border-box; }
+/* The [hidden] attribute must always win over class-level display rules
+   (.modal-backdrop/.whoami set display:flex, which would otherwise override
+   the UA [hidden]{display:none} and leave modals permanently visible). */
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; }
 body {
   font-family: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
