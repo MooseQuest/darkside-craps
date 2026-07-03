@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1033" />
+  <title>Dark Side Craps · Long Don't Strategy</title>
+  <meta name="description" content="A disciplined Don't-Pass / lay-odds craps strategy tracker. Play close to the house edge, for a long time." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="grid-bg" aria-hidden="true"></div>
+  <div class="sun" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">▚</span>
+      <span class="brand-name">DARK<span class="accent">SIDE</span> CRAPS</span>
+    </div>
+    <div class="auth-slot" id="authSlot">
+      <button class="btn ghost" id="signInBtn" hidden>Sign in</button>
+      <div class="whoami" id="whoami" hidden>
+        <span class="dot"></span><span id="whoamiEmail"></span>
+        <button class="btn ghost tiny" id="historyBtn">History</button>
+        <button class="btn ghost tiny" id="signOutBtn">Sign out</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="stage">
+    <!-- START -->
+    <section class="panel card" id="startPanel">
+      <h1 class="title">The Long Dark Side</h1>
+      <p class="lede">
+        Bet the <strong>Don't Pass</strong>, lay the odds, survive the strikes. This isn't about
+        winning big — it's about playing close to the house edge for a long, disciplined session.
+      </p>
+      <div class="field">
+        <label for="bankroll">Starting bankroll</label>
+        <div class="segmented" id="bankrollSeg" role="radiogroup" aria-label="Starting bankroll">
+          <button class="seg active" role="radio" aria-checked="true" data-val="1000">$1,000 <small>$25 base</small></button>
+          <button class="seg" role="radio" aria-checked="false" data-val="2000">$2,000 <small>$50 base</small></button>
+        </div>
+      </div>
+      <button class="btn primary big" id="startBtn">Start session ▸</button>
+      <p class="fineprint">Play anonymously, or <a href="#" id="startSignInLink">sign in with a passkey</a> to save your sessions.</p>
+    </section>
+
+    <!-- GAME -->
+    <section class="panel" id="gamePanel" hidden>
+      <div class="scoreboard">
+        <div class="score big-score">
+          <span class="score-label">Bankroll</span>
+          <span class="score-val" id="scBankroll">$1,000</span>
+          <span class="score-delta" id="scNet"></span>
+        </div>
+        <div class="score"><span class="score-label">Rolls</span><span class="score-val" id="scRolls">0</span></div>
+        <div class="score"><span class="score-label">Won</span><span class="score-val pos" id="scWins">$0</span></div>
+        <div class="score"><span class="score-label">Lost</span><span class="score-val neg" id="scLosses">$0</span></div>
+        <div class="score"><span class="score-label">Wagered</span><span class="score-val" id="scWagered">$0</span></div>
+        <div class="score strikes">
+          <span class="score-label">Strikes</span>
+          <span class="pips" id="scStrikes"><i></i><i></i><i></i></span>
+        </div>
+      </div>
+
+      <div class="table-felt">
+        <div class="dice" id="dice">
+          <div class="die" id="die1" data-face="1"></div>
+          <div class="die" id="die2" data-face="1"></div>
+        </div>
+        <div class="roll-sum" id="rollSum">—</div>
+        <div class="points">
+          <span class="points-label">Points working</span>
+          <div class="point-chips" id="pointChips"><span class="muted">none yet</span></div>
+        </div>
+      </div>
+
+      <div class="advice" id="advice">
+        <div class="advice-status" id="statusLine">Place your $25 Don't Pass bet, then roll.</div>
+        <div class="advice-next" id="nextBet"></div>
+      </div>
+
+      <div class="controls">
+        <label class="checkbox">
+          <input type="checkbox" id="placeBet" checked />
+          <span>Place the bet this roll</span>
+        </label>
+        <div class="btn-row">
+          <button class="btn primary big" id="rollBtn">Roll dice 🎲</button>
+          <button class="btn" id="summaryBtn" hidden>End &amp; summarize</button>
+          <button class="btn ghost" id="continueBtn" hidden>Keep going</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SUMMARY -->
+    <section class="panel card" id="summaryPanel" hidden>
+      <h2 class="title">Session summary</h2>
+      <div class="summary-net" id="sumNet">—</div>
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="saved-note" id="savedNote" hidden></div>
+      <div class="btn-row">
+        <button class="btn primary" id="playAgainBtn">Play again</button>
+        <button class="btn ghost" id="saveSignInBtn" hidden>Sign in to save</button>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="panel card" id="historyPanel" hidden>
+      <h2 class="title">Your sessions</h2>
+      <div class="history-agg" id="historyAgg"></div>
+      <div class="history-list" id="historyList"></div>
+      <button class="btn ghost" id="historyCloseBtn">Back</button>
+    </section>
+  </main>
+
+  <!-- AUTH MODAL -->
+  <div class="modal-backdrop" id="authModal" hidden>
+    <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+      <button class="modal-x" id="authClose" aria-label="Close">✕</button>
+      <h2 class="title" id="authTitle">Sign in with a passkey</h2>
+      <p class="lede small">Enter your email. We'll create or use a passkey on this device — no passwords.</p>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" inputmode="email" autocomplete="username webauthn" placeholder="you@example.com" />
+      </div>
+      <div class="btn-row">
+        <button class="btn primary" id="passkeyRegisterBtn">Create passkey</button>
+        <button class="btn" id="passkeyLoginBtn">Use existing passkey</button>
+      </div>
+      <p class="auth-error" id="authError" hidden></p>
+    </div>
+  </div>
+
+  <!-- FIRST-RUN WALKTHROUGH -->
+  <div class="modal-backdrop" id="walkModal" hidden>
+    <div class="modal card walk" role="dialog" aria-modal="true" aria-labelledby="walkTitle">
+      <div class="walk-step" id="walkStep"></div>
+      <h2 class="title" id="walkTitle"></h2>
+      <p class="walk-body" id="walkBody"></p>
+      <div class="walk-dots" id="walkDots"></div>
+      <div class="btn-row">
+        <button class="btn ghost" id="walkSkip">Skip</button>
+        <button class="btn primary" id="walkNext">Next ▸</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

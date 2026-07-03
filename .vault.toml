@@ -2,7 +2,7 @@
 # NON-SECRET: key names only. Commit freely.
 
 vault_url = "https://vault.raxx.app"
-env       = "dev"
+env       = "prod"
 
 [project]
 id          = "8ebc96f7-b148-423c-b3bd-49f482ea027e"
@@ -10,6 +10,11 @@ name        = "mqcraps"
 slug        = "something-something-darkside"
 secret_path = "/"
 
+# App runtime secrets, consolidated into mqcraps prod:/ on 2026-07-03.
+# FLASK_ENV is a non-secret dev flag and lives at mqcraps dev:/ (used via .env
+# locally); it is intentionally not tracked here.
 keys = [
-  "FLASK_ENV",
+  "MONGO_URI",
+  "SESSION_MONGO_URI",
+  "SECRET_KEY",
 ]

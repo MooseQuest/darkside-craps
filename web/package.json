@@ -1,0 +1,9 @@
+{
+  "name": "darkside-craps-web",
+  "private": true,
+  "type": "module",
+  "description": "Client-side assets for Dark Side Craps (served embedded by the Go binary). Node here is only for running the engine unit tests.",
+  "scripts": {
+    "test": "node --test"
+  }
+}

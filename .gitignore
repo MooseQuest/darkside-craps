@@ -19,6 +19,15 @@ __pycache__/
 # Dependency directories
 node_modules/
 
+# Go build output
+/bin/
+/darkside-craps
+
+# QA / walkthrough screenshots + tooling artifacts (not app inputs)
+*.png
+.playwright-mcp/
+game_instructions.txt
+
 # Credentials
 .credentials/
 .env*
