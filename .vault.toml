@@ -1,0 +1,15 @@
+# .vault.toml — vault-kit manifest for something-something-darkside
+# NON-SECRET: key names only. Commit freely.
+
+vault_url = "https://vault.raxx.app"
+env       = "dev"
+
+[project]
+id          = "8ebc96f7-b148-423c-b3bd-49f482ea027e"
+name        = "mqcraps"
+slug        = "something-something-darkside"
+secret_path = "/"
+
+keys = [
+  "FLASK_ENV",
+]
