@@ -1,112 +1,69 @@
+# Dark Side Craps
 
-# Dark Side Craps Strategy 2024
+A disciplined **Don't-Pass / lay-odds** craps strategy tracker — the "Long Dark Side."
+The goal isn't to win big; it's to play close to the house edge for a long, controlled
+session, and to know when to walk away. See `docs/KH-Long-Dark-Side.md` for the strategy.
 
-This repository contains the initial setup for developing a craps strategy model using Python and Flask. The objective of this model is to simulate a craps strategy and determine the likelihood of success.
+**Live:** https://craps.moosequest.app
 
-This hopes to illustrate and run the Long Dark Side Strategy that I have put together to ensure you have a long play at the crap table. The idea is not to win or lose, but play close to the house edge and for a long period of time. The likelihood of winning at this strategy is low, but higher than if you played the light side. Thus, there are larger bankrolls involved.
+## Stack
 
-Odds here are maintained around the idea of betting enough to equal or gain higher than your original bet. You may get questions about your bet, but nonetheless this has been tested.
-
-Discipline is required to execute this strategy as it is built to ensure you don't lose all the money faster than a certain amount of play time. As the time extended for your play, along with the number of roles, the probably of success goes down. The limitations of that are built into the simulation to let you know when it's time to walk away.
-
-## Folder Structure
+The lightest thing that ships: a single **Go** binary that embeds a dependency-free
+vanilla-JS single-page app. The craps engine runs entirely in the browser (instant, no
+per-roll round-trip); the server exists only to authenticate players with **passkeys**
+(email + WebAuthn — no passwords) and to save their session history in MongoDB.
 
 ```
-.
-├── .gitignore
-├── .vscode
-│   └── launch.json
-├── README.md
-├── app.py
-├── docs
-│   ├── KH-Long-Dark-Side.md
-│   └── chatgpt-prompt.txt
-├── templates
-│   └── index.html
-├── test_craps_game.py
-├── test_flask_app.py
-└── test_strategy.py
+web/            client SPA (served embedded)
+  engine.js       craps state machine (browser + Node)
+  engine.test.mjs unit tests (node --test)
+  index.html / app.js / styles.css
+main.go         config, embed, HTTP server, /healthz
+store.go        MongoDB: users, credentials, ceremony + game sessions
+app.go          routing, static assets, signed session cookies
+auth.go         passkey register/login/logout (go-webauthn)
+api.go          per-account game history + summary
 ```
 
-## Prerequisites
+## Develop
 
-To run this project, you will need to have the following software installed on your local machine:
+Requires Go 1.23+, Node 20+, and a MongoDB.
 
-- Python 3.x
-- pip (Python package installer)
+```bash
+# start a throwaway mongo
+docker run -d --name craps-mongo -p 27017:27017 mongo:7
 
-## ChatGPT Prompt
+# run the app
+MONGO_URI=mongodb://localhost:27017 SECRET_KEY=dev \
+  RP_ID=localhost RP_ORIGIN=http://localhost:8080 PORT=8080 \
+  go run .
+# → http://localhost:8080
+```
 
-If you want to journey down creating or building this app with generative AI, here is the prompt I used along with the Strategy. First I wrote out the strategy, the built out the components to support the strategy.
+### Tests
 
-## Setup Instructions
+```bash
+go test ./...            # server: signed sessions, email validation, helpers
+cd web && node --test    # craps engine: every transition, strikes, seven-out
+```
 
-1. **Clone the Repository**
+## Configuration (env)
 
-   ```bash
-   git clone <repository-url>
-   cd something-something-darkside
-   ```
+| Var | Purpose |
+|-----|---------|
+| `MONGO_URI` | MongoDB connection string (required) |
+| `SECRET_KEY` | HMAC key for signed session cookies (required in prod) |
+| `RP_ID` | WebAuthn Relying Party ID = the domain (`craps.moosequest.app`) |
+| `RP_ORIGIN` | Full origin (`https://craps.moosequest.app`) |
+| `MONGO_DB` | Database name (default `craps_game`) |
+| `PORT` | Listen port (default `8080`; set by Heroku) |
 
-2. **Create and Activate a Virtual Environment**
+Secrets are sourced from the **mqcraps** project in the vault (vault.raxx.app); see
+`.vault.toml`. On Heroku they are injected as config vars.
 
-   On macOS/Linux:
-   ```bash
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
+## Deploy
 
-   On Windows:
-   ```bash
-   python -m venv venv
-   .\venv\Scripts\activate
-   ```
-
-3. **Install Required Packages**
-
-   ```bash
-   pip install Flask
-   ```
-
-## Running the Application
-
-1. **Start the Flask Application**
-
-   ```bash
-   python app.py
-   ```
-
-2. **Access the Application**
-
-   Open your web browser and navigate to `http://127.0.0.1:5000` to view and interact with the craps strategy simulation.
-
-## Application Structure
-
-- `app.py`: The main Flask application file. It contains the routes and logic for the craps simulation.
-- `docs/`: This directory contains documentation files.
-  - `KH-Long-Dark-Side.md`: Detailed description of the KH Long Play Don’t Strategy.
-  - `chatgpt-prompt.txt`: The initial prompt used to generate the project files.
-- `templates/`: This directory contains the HTML template for the web interface.
-  - `index.html`: The main HTML file for the Flask application.
-
-## How to Use
-
-1. **Open the Application**:
-   Navigate to `http://127.0.0.1:5000` in your web browser.
-
-2. **Enter Initial Bankroll**:
-   Enter the initial bankroll amount in the provided input field.
-
-3. **Run Simulation**:
-   Click on the "Run Simulation" button to start the craps strategy simulation.
-
-4. **View Results**:
-   The simulation results will be displayed below the form, showing the changes in bankroll over time based on the craps strategy.
-
-## Contributing
-
-If you would like to contribute to this project, please fork the repository and create a pull request with your changes.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for more information.
+Pushing to `main` runs CI (build + Go tests + JS engine tests + a boot smoke test against
+a Mongo service container) and, when green, deploys to Heroku (Go buildpack) and
+smoke-tests `https://craps.moosequest.app/healthz`. Passkeys are bound to the RP ID, so
+the app must be reached at `craps.moosequest.app` for registration/login to work.

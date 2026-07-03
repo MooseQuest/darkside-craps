@@ -1,8 +1,9 @@
-name: Deploy
+name: CI/CD
 
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch: {}
 
 concurrency:
@@ -11,7 +12,7 @@ concurrency:
 
 jobs:
   test:
-    name: Smoke test against vault-backed boot
+    name: Build + test
     runs-on: ubuntu-latest
     services:
       mongo:
@@ -22,80 +23,65 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
-          python-version: '3.12'
-          cache: pip
+          go-version: '1.23'
+          cache: true
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
-      - name: Boot Flask app and wait for HTTP 200
+      - name: go vet
+        run: go vet ./...
+
+      - name: go test
+        run: go test ./...
+
+      - name: Engine unit tests (JS)
+        working-directory: web
+        run: node --test
+
+      - name: Build binary
+        run: go build -o bin/darkside-craps .
+
+      - name: Boot + smoke test against Mongo
         env:
-          # Local Mongo from the service container — no vault dependency for CI.
-          # secrets_loader falls back to env when INFISICAL_CLIENT_ID is unset.
-          MONGO_URI: mongodb://localhost:27017/
-          SESSION_MONGO_URI: mongodb://localhost:27017/
+          MONGO_URI: mongodb://localhost:27017
           SECRET_KEY: ci-only-not-secret
-          FLASK_ENV: development
-          PORT: 5000
+          RP_ID: localhost
+          RP_ORIGIN: http://localhost:8080
+          PORT: 8080
+          MONGO_DB: craps_ci
         run: |
           set -e
-          python app.py > app.log 2>&1 &
+          ./bin/darkside-craps > app.log 2>&1 &
           echo "APP_PID=$!" >> $GITHUB_ENV
-          # Poll for readiness — fail fast if the process dies
           for i in $(seq 1 30); do
-            if ! kill -0 $! 2>/dev/null; then
-              echo "Flask process died before serving traffic"
-              cat app.log
-              exit 1
-            fi
-            if curl -sf -o /dev/null http://127.0.0.1:5000/; then
-              echo "Flask ready after ${i}s"
-              exit 0
-            fi
+            if ! kill -0 $! 2>/dev/null; then echo "app died:"; cat app.log; exit 1; fi
+            if curl -sf -o /dev/null http://127.0.0.1:8080/healthz; then echo "ready in ${i}s"; break; fi
             sleep 1
           done
-          echo "Flask did not become ready in 30s"
-          cat app.log
-          exit 1
-
-      - name: Run smoke tests
-        env:
-          CRAPS_URL: http://127.0.0.1:5000
-        run: python test_craps_game.py
+          curl -sf -o /dev/null http://127.0.0.1:8080/healthz
+          curl -sf -o /dev/null http://127.0.0.1:8080/
+          curl -sf -o /dev/null http://127.0.0.1:8080/engine.js
+          # anonymous register challenge must succeed
+          curl -sf -X POST -H 'Content-Type: application/json' \
+            -d '{"email":"ci@example.com"}' http://127.0.0.1:8080/auth/register/begin | grep -q publicKey
+          echo "smoke OK"
 
       - name: Show app log on failure
         if: failure()
         run: cat app.log || true
 
-      - name: Stop Flask
+      - name: Stop app
         if: always()
         run: kill ${APP_PID} 2>/dev/null || true
-
-      - name: Verify vault is reachable from CI
-        env:
-          INFISICAL_HOST: ${{ secrets.INFISICAL_HOST }}
-          INFISICAL_PROJECT_ID: ${{ secrets.INFISICAL_PROJECT_ID }}
-          INFISICAL_CLIENT_ID: ${{ secrets.INFISICAL_CLIENT_ID }}
-          INFISICAL_CLIENT_SECRET: ${{ secrets.INFISICAL_CLIENT_SECRET }}
-          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
-          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
-        run: |
-          python - <<'PY'
-          import os, secrets_loader
-          assert secrets_loader._vault_enabled(), "vault env vars missing"
-          val = secrets_loader.load("MONGO_URI")
-          assert val and val.startswith("mongodb"), f"unexpected MONGO_URI shape"
-          print("OK: vault returned a valid MONGO_URI")
-          PY
 
   deploy:
     name: Deploy to Heroku
@@ -113,7 +99,6 @@ jobs:
           HEROKU_APP_NAME: ${{ secrets.HEROKU_APP_NAME }}
         run: |
           set -e
-          # netrc auth for git+https push to Heroku — avoids needing the heroku CLI on the runner
           cat > "$HOME/.netrc" <<EOF
           machine git.heroku.com
             login git@heroku.com
@@ -126,14 +111,9 @@ jobs:
       - name: Smoke test prod
         run: |
           set -e
-          for i in $(seq 1 12); do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://mq-craps-aca54a5fd2a3.herokuapp.com/")
-            if [ "$CODE" = "200" ]; then
-              echo "Prod returned HTTP 200 after ${i}*5s"
-              exit 0
-            fi
-            echo "Attempt $i: HTTP $CODE"
-            sleep 5
+          for i in $(seq 1 18); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" "https://craps.moosequest.app/healthz")
+            if [ "$CODE" = "200" ]; then echo "prod healthy after ${i}*5s"; exit 0; fi
+            echo "attempt $i: HTTP $CODE"; sleep 5
           done
-          echo "Prod never returned 200 after 60s"
-          exit 1
+          echo "prod never healthy"; exit 1
