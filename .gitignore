@@ -26,3 +26,4 @@ node_modules/
 
 # Flask Session files
 flask_session/
+.env
