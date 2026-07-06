@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 )
 
 type saveReq struct {
-	Summary map[string]any `json:"summary"`
+	Summary gameSummary `json:"summary"`
 }
 
 func (a *App) handleSaveSession(w http.ResponseWriter, r *http.Request) {
@@ -14,9 +15,13 @@ func (a *App) handleSaveSession(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusUnauthorized, "sign in to save sessions")
 		return
 	}
+	// Decode into a strictly-typed numeric struct: unknown fields (e.g. the
+	// client's per-roll `results` array) are ignored and never stored, and any
+	// non-numeric value in a known field fails decoding — so no arbitrary or
+	// oversized JSON, and no markup, can reach the database or the history view.
 	var req saveReq
-	if err := readJSON(r, &req); err != nil || req.Summary == nil {
-		writeErr(w, http.StatusBadRequest, "summary is required")
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeErr(w, http.StatusBadRequest, "invalid summary")
 		return
 	}
 	ctx, cancel := reqCtx(r)
@@ -41,15 +46,18 @@ func (a *App) handleHistory(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "could not load history")
 		return
 	}
-	// Flatten each session's summary + created_at for the client.
 	out := make([]map[string]any, 0, len(sessions))
 	for _, s := range sessions {
-		row := map[string]any{}
-		for k, v := range s.Summary {
-			row[k] = v
-		}
-		row["created_at"] = s.CreatedAt
-		out = append(out, row)
+		out = append(out, map[string]any{
+			"initial_bankroll": s.Summary.InitialBankroll,
+			"final_bankroll":   s.Summary.FinalBankroll,
+			"roll_count":       s.Summary.RollCount,
+			"points_hit":       s.Summary.PointsHit,
+			"strikes":          s.Summary.Strikes,
+			"total_wagered":    s.Summary.TotalWagered,
+			"net":              s.Summary.Net,
+			"created_at":       s.CreatedAt,
+		})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"sessions": out})
 }
@@ -67,31 +75,14 @@ func (a *App) handleSummary(w http.ResponseWriter, r *http.Request) {
 		writeErr(w, http.StatusInternalServerError, "could not load summary")
 		return
 	}
-	var netTotal, rollsTotal float64
+	var netTotal, rollsTotal int64
 	for _, s := range sessions {
-		netTotal += toFloat(s.Summary["net"])
-		rollsTotal += toFloat(s.Summary["roll_count"])
+		netTotal += int64(s.Summary.Net)
+		rollsTotal += int64(s.Summary.RollCount)
 	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"count":       len(sessions),
-		"net_total":   int64(netTotal),
-		"rolls_total": int64(rollsTotal),
+		"net_total":   netTotal,
+		"rolls_total": rollsTotal,
 	})
-}
-
-func toFloat(v any) float64 {
-	switch n := v.(type) {
-	case float64:
-		return n
-	case float32:
-		return float64(n)
-	case int:
-		return float64(n)
-	case int32:
-		return float64(n)
-	case int64:
-		return float64(n)
-	default:
-		return 0
-	}
 }

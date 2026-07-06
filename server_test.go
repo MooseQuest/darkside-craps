@@ -65,7 +65,8 @@ func TestCurrentEmailExpired(t *testing.T) {
 
 func TestValidEmail(t *testing.T) {
 	ok := []string{"a@b.co", "user.name+tag@example.com"}
-	bad := []string{"", "nope", "@x.com", "x@", "a@@b", "  "}
+	bad := []string{"", "nope", "@x.com", "x@", "a@@b", "  ",
+		"a b@x.com", "pipe|payload@x.com", "ctrl\x00@x.com", "tab\t@x.com"}
 	for _, e := range ok {
 		if !validEmail(e) {
 			t.Errorf("expected valid: %q", e)
@@ -104,11 +105,30 @@ func TestHealthz(t *testing.T) {
 	}
 }
 
-func TestToFloat(t *testing.T) {
-	cases := map[any]float64{float64(3): 3, int(4): 4, int32(5): 5, int64(6): 6, "x": 0, nil: 0}
-	for in, want := range cases {
-		if got := toFloat(in); got != want {
-			t.Errorf("toFloat(%v)=%v want %v", in, got, want)
+func TestRateLimiter(t *testing.T) {
+	rl := newRateLimiter(3, time.Minute)
+	base := time.Unix(1_700_000_000, 0)
+	for i := 0; i < 3; i++ {
+		if !rl.allow("1.2.3.4", base) {
+			t.Fatalf("request %d should be allowed", i)
 		}
+	}
+	if rl.allow("1.2.3.4", base) {
+		t.Fatal("4th request in window should be blocked")
+	}
+	if !rl.allow("5.6.7.8", base) {
+		t.Fatal("a different IP should have its own bucket")
+	}
+	if !rl.allow("1.2.3.4", base.Add(time.Minute+time.Second)) {
+		t.Fatal("request after the window resets should be allowed")
+	}
+}
+
+func TestClientIPUsesLastForwardedFor(t *testing.T) {
+	r := httptest.NewRequest(http.MethodGet, "/", nil)
+	// Heroku appends the real client IP last; spoofed entries come first.
+	r.Header.Set("X-Forwarded-For", "9.9.9.9, 203.0.113.7")
+	if ip := clientIP(r); ip != "203.0.113.7" {
+		t.Fatalf("clientIP = %q, want the last (Heroku-appended) entry", ip)
 	}
 }

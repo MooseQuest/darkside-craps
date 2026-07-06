@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -26,14 +27,10 @@ type Config struct {
 
 func loadConfig() Config {
 	port := getenv("PORT", "8080")
-	secret := os.Getenv("SECRET_KEY")
-	if secret == "" {
-		secret = "dev-only-not-secret-change-me"
-	}
 	return Config{
 		Port:          port,
 		MongoURI:      os.Getenv("MONGO_URI"),
-		SessionSecret: []byte(secret),
+		SessionSecret: []byte(os.Getenv("SECRET_KEY")),
 		RPID:          getenv("RP_ID", "localhost"),
 		RPOrigin:      getenv("RP_ORIGIN", "http://localhost:"+port),
 		DBName:        getenv("MONGO_DB", "craps_game"),
@@ -52,6 +49,15 @@ func main() {
 	if cfg.MongoURI == "" {
 		log.Fatal("MONGO_URI is not set")
 	}
+	// Fail closed: a real (https) deployment must set SECRET_KEY, otherwise
+	// session cookies would be signed with a publicly-known key and forgeable.
+	if len(cfg.SessionSecret) == 0 {
+		if strings.HasPrefix(cfg.RPOrigin, "https://") {
+			log.Fatal("SECRET_KEY is required in production (RP_ORIGIN is https)")
+		}
+		log.Println("WARNING: SECRET_KEY unset — using an insecure dev key (localhost only)")
+		cfg.SessionSecret = []byte("dev-only-not-secret-change-me")
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
@@ -69,9 +75,13 @@ func main() {
 	mux := http.NewServeMux()
 	app.routes(mux)
 
+	// 60 auth/api requests per minute per client IP.
+	rl := newRateLimiter(60, time.Minute)
+	handler := logRequests(securityHeaders(rateLimit(rl, limitBody(mux))))
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           logRequests(mux),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	log.Printf("listening on :%s (rp_id=%s origin=%s)", cfg.Port, cfg.RPID, cfg.RPOrigin)
