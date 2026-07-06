@@ -225,22 +225,45 @@ function friendly(e) {
 async function signOut() { try { await api('/auth/logout', { method: 'POST' }); } catch {} await refreshAuth(); }
 
 // ---- History ---------------------------------------------------------------
+// el builds a DOM node with a text child — never interpolates untrusted data
+// into HTML, so server values can't become markup.
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = String(text);
+  return n;
+}
+const num = (v) => (Number.isFinite(+v) ? +v : 0);
+
 async function openHistory() {
   try {
     const { sessions } = await api('/api/history');
     const agg = await api('/api/summary');
-    $('historyAgg').innerHTML =
-      `<span>Sessions: <b>${agg.count}</b></span>` +
-      `<span>Net lifetime: <b class="${agg.net_total >= 0 ? 'pos' : 'neg'}">${(agg.net_total >= 0 ? '+' : '') + fmt(agg.net_total)}</b></span>` +
-      `<span>Rolls: <b>${agg.rolls_total}</b></span>`;
-    $('historyList').innerHTML = sessions.length
-      ? sessions.map((s) => {
-          const net = s.net ?? (s.final_bankroll - s.initial_bankroll);
-          const when = s.created_at ? new Date(s.created_at).toLocaleString() : '';
-          return `<div class="hrow"><div><b>${fmt(s.initial_bankroll)}</b> → ${fmt(s.final_bankroll)}<br><small>${s.roll_count} rolls · ${when}</small></div>` +
-                 `<div class="net ${net >= 0 ? 'pos' : 'neg'}">${(net >= 0 ? '+' : '') + fmt(net)}</div></div>`;
-        }).join('')
-      : '<p class="muted">No saved sessions yet. Finish a game while signed in.</p>';
+    const netTotal = num(agg.net_total);
+    const aggEl = $('historyAgg');
+    aggEl.replaceChildren();
+    const s1 = el('span'); s1.append('Sessions: ', el('b', null, num(agg.count)));
+    const s2 = el('span'); s2.append('Net lifetime: ',
+      el('b', netTotal >= 0 ? 'pos' : 'neg', (netTotal >= 0 ? '+' : '') + fmt(netTotal)));
+    const s3 = el('span'); s3.append('Rolls: ', el('b', null, num(agg.rolls_total)));
+    aggEl.append(s1, s2, s3);
+
+    const list = $('historyList');
+    list.replaceChildren();
+    if (!sessions.length) {
+      list.append(el('p', 'muted', 'No saved sessions yet. Finish a game while signed in.'));
+    } else {
+      for (const s of sessions) {
+        const net = num(s.net);
+        const when = s.created_at ? new Date(s.created_at).toLocaleString() : '';
+        const left = el('div');
+        left.append(el('b', null, fmt(num(s.initial_bankroll))), ' → ' + fmt(num(s.final_bankroll)),
+          el('br'), el('small', null, `${num(s.roll_count)} rolls · ${when}`));
+        const right = el('div', 'net ' + (net >= 0 ? 'pos' : 'neg'), (net >= 0 ? '+' : '') + fmt(net));
+        const row = el('div', 'hrow'); row.append(left, right);
+        list.append(row);
+      }
+    }
     show('historyPanel');
   } catch (e) { alert('Could not load history: ' + e.message); }
 }

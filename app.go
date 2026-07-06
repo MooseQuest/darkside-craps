@@ -16,7 +16,8 @@ import (
 
 const sessionCookie = "craps_session"
 const ceremonyCookie = "craps_wa"
-const sessionTTL = 30 * 24 * time.Hour
+const sessionTTL = 7 * 24 * time.Hour
+const maxBodyBytes = 1 << 20 // 1 MiB request-body cap
 
 // App holds shared dependencies for the HTTP handlers.
 type App struct {

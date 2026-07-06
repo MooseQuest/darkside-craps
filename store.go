@@ -46,15 +46,26 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 	_, _ = s.sessions.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{{Key: "email", Value: 1}, {Key: "created_at", Value: -1}},
 	})
+	// Stale, unfinished ceremonies self-expire so anonymous begin calls can't
+	// accumulate documents indefinitely.
+	_, _ = s.waSess.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "created_at", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(600),
+	})
 	return s, nil
+}
+
+func newHandle() ([]byte, error) {
+	h := make([]byte, 32)
+	_, err := rand.Read(h)
+	return h, err
 }
 
 // ---- User model ------------------------------------------------------------
 
 type userDoc struct {
-	Email      string    `bson:"email"`
-	Handle     []byte    `bson:"handle"` // WebAuthn user id
-	CreatedAt  time.Time `bson:"created_at"`
+	Email     string    `bson:"email"`
+	Handle    []byte    `bson:"handle"` // WebAuthn user id
+	CreatedAt time.Time `bson:"created_at"`
 }
 
 type credDoc struct {
@@ -64,7 +75,7 @@ type credDoc struct {
 
 // User implements webauthn.User.
 type User struct {
-	email string
+	email  string
 	handle []byte
 	creds  []webauthn.Credential
 }
@@ -75,19 +86,13 @@ func (u *User) WebAuthnDisplayName() string                { return u.email }
 func (u *User) WebAuthnCredentials() []webauthn.Credential { return u.creds }
 func (u *User) WebAuthnIcon() string                       { return "" }
 
-// GetOrCreateUser returns the user, creating a bare record (no creds) if new.
-func (s *Store) GetOrCreateUser(ctx context.Context, email string) (*User, error) {
+// GetUser returns an existing user or errNotFound. It never creates a record —
+// user documents are only persisted once a passkey registration finishes.
+func (s *Store) GetUser(ctx context.Context, email string) (*User, error) {
 	var doc userDoc
 	err := s.users.FindOne(ctx, bson.M{"email": email}).Decode(&doc)
 	if err == mongo.ErrNoDocuments {
-		handle := make([]byte, 32)
-		if _, err := rand.Read(handle); err != nil {
-			return nil, err
-		}
-		doc = userDoc{Email: email, Handle: handle, CreatedAt: time.Now().UTC()}
-		if _, err := s.users.InsertOne(ctx, doc); err != nil {
-			return nil, err
-		}
+		return nil, errNotFound
 	} else if err != nil {
 		return nil, err
 	}
@@ -98,13 +103,17 @@ func (s *Store) GetOrCreateUser(ctx context.Context, email string) (*User, error
 	return &User{email: email, handle: doc.Handle, creds: creds}, nil
 }
 
-// GetUser returns an existing user or errNotFound.
-func (s *Store) GetUser(ctx context.Context, email string) (*User, error) {
+// EnsureUser persists the user with the given handle if it does not yet exist,
+// and returns the (existing or new) user. Called only at registration finish.
+func (s *Store) EnsureUser(ctx context.Context, email string, handle []byte) (*User, error) {
 	var doc userDoc
-	err := s.users.FindOne(ctx, bson.M{"email": email}).Decode(&doc)
-	if err == mongo.ErrNoDocuments {
-		return nil, errNotFound
-	} else if err != nil {
+	err := s.users.FindOneAndUpdate(
+		ctx,
+		bson.M{"email": email},
+		bson.M{"$setOnInsert": userDoc{Email: email, Handle: handle, CreatedAt: time.Now().UTC()}},
+		options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After),
+	).Decode(&doc)
+	if err != nil {
 		return nil, err
 	}
 	creds, err := s.credentialsFor(ctx, email)
@@ -150,38 +159,56 @@ func (s *Store) UpdateCredential(ctx context.Context, email string, c *webauthn.
 type waSessionDoc struct {
 	Email     string               `bson:"email"`
 	Data      webauthn.SessionData `bson:"data"`
+	Handle    []byte               `bson:"handle"` // user handle chosen at begin, reused at finish
 	CreatedAt time.Time            `bson:"created_at"`
 }
 
-func (s *Store) SaveWASession(ctx context.Context, email string, data *webauthn.SessionData) error {
+func (s *Store) SaveWASession(ctx context.Context, email string, data *webauthn.SessionData, handle []byte) error {
 	_, err := s.waSess.UpdateOne(ctx,
 		bson.M{"email": email},
-		bson.M{"$set": waSessionDoc{Email: email, Data: *data, CreatedAt: time.Now().UTC()}},
+		bson.M{"$set": waSessionDoc{Email: email, Data: *data, Handle: handle, CreatedAt: time.Now().UTC()}},
 		options.Update().SetUpsert(true),
 	)
 	return err
 }
 
-func (s *Store) TakeWASession(ctx context.Context, email string) (*webauthn.SessionData, error) {
+func (s *Store) TakeWASession(ctx context.Context, email string) (*webauthn.SessionData, []byte, error) {
 	var doc waSessionDoc
 	err := s.waSess.FindOneAndDelete(ctx, bson.M{"email": email}).Decode(&doc)
 	if err == mongo.ErrNoDocuments {
-		return nil, errNotFound
+		return nil, nil, errNotFound
 	} else if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return &doc.Data, nil
+	return &doc.Data, doc.Handle, nil
 }
 
 // ---- Game history ----------------------------------------------------------
 
-type gameSession struct {
-	Email     string         `bson:"email" json:"-"`
-	Summary   map[string]any `bson:"summary" json:"summary"`
-	CreatedAt time.Time      `bson:"created_at" json:"created_at"`
+// gameSummary is the whitelisted, strictly-typed shape we persist. Only numeric
+// fields are accepted, so a client cannot store arbitrary/oversized JSON or
+// smuggle markup into the history view.
+type gameSummary struct {
+	InitialBankroll   float64 `json:"initial_bankroll" bson:"initial_bankroll"`
+	FinalBankroll     float64 `json:"final_bankroll" bson:"final_bankroll"`
+	RollCount         int     `json:"roll_count" bson:"roll_count"`
+	PointsEstablished int     `json:"points_established" bson:"points_established"`
+	PointsHit         int     `json:"points_hit" bson:"points_hit"`
+	PointsLost        int     `json:"points_lost" bson:"points_lost"`
+	Wins              float64 `json:"wins" bson:"wins"`
+	Losses            float64 `json:"losses" bson:"losses"`
+	Strikes           int     `json:"strikes" bson:"strikes"`
+	TotalWagered      float64 `json:"total_wagered" bson:"total_wagered"`
+	Net               float64 `json:"net" bson:"net"`
 }
 
-func (s *Store) SaveGameSession(ctx context.Context, email string, summary map[string]any) error {
+type gameSession struct {
+	Email     string      `bson:"email" json:"-"`
+	Summary   gameSummary `bson:"summary" json:"summary"`
+	CreatedAt time.Time   `bson:"created_at" json:"created_at"`
+}
+
+func (s *Store) SaveGameSession(ctx context.Context, email string, summary gameSummary) error {
 	_, err := s.sessions.InsertOne(ctx, gameSession{
 		Email: email, Summary: summary, CreatedAt: time.Now().UTC(),
 	})
