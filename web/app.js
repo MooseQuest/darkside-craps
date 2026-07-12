@@ -93,6 +93,7 @@ function paint(r) {
 
   $('summaryBtn').hidden = !r.summary_button;
   $('continueBtn').hidden = !r.continue_button;
+  $('endRow').hidden = !(r.summary_button || r.continue_button);
 }
 
 // ---- Game flow -------------------------------------------------------------
@@ -110,6 +111,7 @@ function startGame() {
   $('nextBet').textContent = '';
   $('summaryBtn').hidden = true;
   $('continueBtn').hidden = true;
+  $('endRow').hidden = true;
   show('gamePanel');
   maybeWalkthrough();
 }
@@ -305,7 +307,7 @@ function wire() {
   $('startBtn').addEventListener('click', startGame);
   $('rollBtn').addEventListener('click', doRoll);
   $('summaryBtn').addEventListener('click', endGame);
-  $('continueBtn').addEventListener('click', () => { $('summaryBtn').hidden = true; $('continueBtn').hidden = true; });
+  $('continueBtn').addEventListener('click', () => { $('summaryBtn').hidden = true; $('continueBtn').hidden = true; $('endRow').hidden = true; });
   $('playAgainBtn').addEventListener('click', () => show('startPanel'));
 
   $('signInBtn').addEventListener('click', openAuth);

@@ -170,8 +170,11 @@ input[type=email]:focus { outline: none; border-color: var(--pink); box-shadow: 
 .chip { padding: 4px 11px; border-radius: 999px; background: rgba(122,75,255,0.2); border: 1px solid var(--purple); font-weight: 700; }
 .muted { color: var(--muted); }
 
-/* Advice */
-.advice { border-left: 3px solid var(--cyan); padding: 12px 16px; background: rgba(45,226,230,0.06); border-radius: 8px; margin-bottom: 16px; }
+/* Advice — reserve the tallest message's height and center the text so the
+   Roll button below it never shifts as the message length changes. */
+.advice { border-left: 3px solid var(--cyan); padding: 12px 16px; background: rgba(45,226,230,0.06);
+  border-radius: 8px; margin-bottom: 16px; min-height: 80px;
+  display: flex; flex-direction: column; justify-content: center; }
 .advice-status { font-weight: 600; line-height: 1.4; }
 .advice-next { color: var(--gold); font-size: 14px; margin-top: 6px; }
 
@@ -230,7 +233,7 @@ input[type=email]:focus { outline: none; border-color: var(--pink); box-shadow: 
   .statusbar { padding: 7px 11px; margin-bottom: 9px; }
   .pips i { width: 11px; height: 11px; }
 
-  .advice { padding: 9px 12px; margin-bottom: 9px; }
+  .advice { padding: 9px 12px; margin-bottom: 9px; min-height: 104px; }
   .advice-status { font-size: 14px; line-height: 1.35; }
   .advice-next { font-size: 13px; margin-top: 4px; }
 
