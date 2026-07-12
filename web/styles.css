@@ -117,44 +117,57 @@ input[type=email]:focus { outline: none; border-color: var(--pink); box-shadow: 
 .btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
 .btn-row .btn { flex: 1; min-width: 140px; }
 
-/* Scoreboard */
-.scoreboard {
-  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;
+/* Game hero: Won/Lost (left) | Bankroll (center) | Dice + rolls (right) */
+.hero {
+  display: grid; grid-template-columns: minmax(52px, auto) 1fr minmax(88px, auto);
+  gap: 10px; align-items: center; margin-bottom: 10px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 12px;
 }
-.score {
-  background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
-  display: flex; flex-direction: column; gap: 4px;
-}
-.score.big-score { grid-column: span 3; align-items: center; text-align: center; padding: 16px; }
+.hero-stats { display: flex; flex-direction: column; gap: 10px; }
+.mini { display: flex; flex-direction: column; gap: 2px; }
+.hero-bank { min-width: 0; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.hero-bank .score-val { font-size: clamp(26px, 8vw, 40px); font-weight: 800; text-shadow: var(--glow); line-height: 1.05; }
+.hero-bank .wagered { margin-top: 5px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.hero-bank .wagered b { color: var(--ink); }
+.hero-dice { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.dice-meta { display: flex; flex-direction: column; align-items: center; line-height: 1.15; }
+.dice-meta .rolls { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+.dice-meta .rolls b { color: var(--ink); font-size: 13px; }
+
 .score-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
-.score-val { font-size: 20px; font-weight: 800; }
-.big-score .score-val { font-size: 40px; text-shadow: var(--glow); }
+.score-val { font-size: 19px; font-weight: 800; }
 .score-val.pos { color: var(--pos); } .score-val.neg { color: var(--neg); }
-.score-delta { font-size: 14px; font-weight: 700; }
+.score-delta { font-size: 13px; font-weight: 700; }
 .score-delta.pos { color: var(--pos); } .score-delta.neg { color: var(--neg); }
-.strikes .pips { display: flex; gap: 6px; }
-.pips i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid var(--neg); display: inline-block; }
+
+/* Status bar: points working + strikes */
+.statusbar {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px;
+  background: rgba(13,6,32,0.45); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px;
+}
+.statusbar .points { display: flex; align-items: center; gap: 8px; margin: 0; }
+.statusbar .point-chips { margin-top: 0; }
+.statusbar .chip { padding: 3px 10px; font-size: 13px; }
+.statusbar .strikes { display: flex; align-items: center; gap: 8px; }
+.pips { display: flex; gap: 6px; }
+.pips i { width: 13px; height: 13px; border-radius: 50%; border: 1px solid var(--neg); display: inline-block; }
 .pips i.on { background: var(--neg); box-shadow: 0 0 8px var(--neg); }
 
-/* Felt / dice */
-.table-felt {
-  background: radial-gradient(circle at 50% 30%, rgba(45,226,230,0.10), transparent 60%), rgba(13,6,32,0.55);
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; text-align: center; margin-bottom: 16px;
-}
-.dice { display: flex; gap: 18px; justify-content: center; margin-bottom: 10px; }
+/* Dice */
+.dice { display: flex; gap: 9px; justify-content: center; }
 .die {
-  width: 62px; height: 62px; border-radius: 14px; background: #f4f0ff; position: relative;
-  box-shadow: 0 6px 0 #b9a9e6, var(--glow); transition: transform 0.4s;
+  width: 52px; height: 52px; border-radius: 12px; background: #f4f0ff; position: relative;
+  box-shadow: 0 5px 0 #b9a9e6, var(--glow); transition: transform 0.4s;
 }
 .die.rolling { animation: tumble 0.5s ease; }
 @keyframes tumble { 25% { transform: rotate(-18deg) translateY(-8px); } 60% { transform: rotate(14deg); } 100% { transform: none; } }
 .die::before { /* pips via radial dots */ content: ""; position: absolute; inset: 0; }
-.pip { position: absolute; width: 11px; height: 11px; border-radius: 50%; background: #2a1a5e; }
-.roll-sum { font-size: 30px; font-weight: 800; color: var(--gold); letter-spacing: 1px; min-height: 38px; }
-.points { margin-top: 10px; }
-.points-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
-.point-chips { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
-.chip { padding: 6px 12px; border-radius: 999px; background: rgba(122,75,255,0.2); border: 1px solid var(--purple); font-weight: 700; }
+.pip { position: absolute; width: 17%; height: 17%; border-radius: 50%; background: #2a1a5e; transform: translate(-50%, -50%); }
+.roll-sum { font-size: 16px; font-weight: 800; color: var(--gold); letter-spacing: 0.5px; }
+.points { display: flex; align-items: center; gap: 8px; }
+.points-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+.point-chips { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.chip { padding: 4px 11px; border-radius: 999px; background: rgba(122,75,255,0.2); border: 1px solid var(--purple); font-weight: 700; }
 .muted { color: var(--muted); }
 
 /* Advice */
@@ -197,9 +210,43 @@ input[type=email]:focus { outline: none; border-color: var(--pink); box-shadow: 
 .walk-dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .walk-dots i.on { background: var(--pink); box-shadow: var(--glow); }
 
-@media (max-width: 520px) {
-  .scoreboard { grid-template-columns: repeat(2, 1fr); }
-  .score.big-score { grid-column: span 2; }
+/* Mobile: tighten vertical rhythm so the dice + Roll button sit above the fold. */
+@media (max-width: 560px) {
+  .stage { padding: 12px 12px 26px; gap: 12px; }
+  .card { padding: 18px; }
   .title { font-size: 22px; }
-  .big-score .score-val { font-size: 34px; }
+
+  .hero { gap: 8px; padding: 12px 10px; margin-bottom: 9px;
+    grid-template-columns: minmax(46px, auto) 1fr minmax(80px, auto); }
+  .hero-stats { gap: 8px; }
+  .score-label { font-size: 10px; letter-spacing: 1px; }
+  .score-val { font-size: 15px; }
+  .hero-bank .score-val { font-size: clamp(24px, 9vw, 34px); }
+  .score-delta { font-size: 12px; }
+  .die { width: 44px; height: 44px; border-radius: 10px; box-shadow: 0 4px 0 #b9a9e6, var(--glow); }
+  .dice { gap: 8px; }
+  .roll-sum { font-size: 15px; }
+
+  .statusbar { padding: 7px 11px; margin-bottom: 9px; }
+  .pips i { width: 11px; height: 11px; }
+
+  .advice { padding: 9px 12px; margin-bottom: 9px; }
+  .advice-status { font-size: 14px; line-height: 1.35; }
+  .advice-next { font-size: 13px; margin-top: 4px; }
+
+  .checkbox { font-size: 13px; margin-bottom: 4px; }
+  .btn.big { padding: 13px 18px; font-size: 16px; margin-top: 4px; }
+  .btn-row { gap: 8px; }
+}
+
+/* Short viewports (iPhone SE and smaller / landscape): trim further so the
+   Roll button clears the fold even with the mobile browser chrome. */
+@media (max-height: 680px) {
+  .stage { padding-top: 8px; gap: 10px; }
+  .hero { padding: 10px; margin-bottom: 7px; }
+  .hero-bank .score-val { font-size: clamp(22px, 8vw, 30px); }
+  .die { width: 40px; height: 40px; transition: transform 0.3s; }
+  .statusbar { margin-bottom: 7px; }
+  .advice { padding: 8px 11px; margin-bottom: 7px; }
+  .btn.big { padding: 12px 16px; }
 }

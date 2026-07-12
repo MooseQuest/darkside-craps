@@ -50,13 +50,13 @@ const PIP_MAP = {
   5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8],
 };
 function renderDie(el, face) {
-  el.innerHTML = '';
-  const cols = [14, 26, 38], rows = [14, 26, 38];
+  el.replaceChildren();
+  const pct = [25, 50, 75]; // 3x3 grid, positioned as % so dice scale to any size
   PIP_MAP[face].forEach((slot) => {
     const pip = document.createElement('span');
     pip.className = 'pip';
-    pip.style.left = cols[slot % 3] + 'px';
-    pip.style.top = rows[Math.floor(slot / 3)] + 'px';
+    pip.style.left = pct[slot % 3] + '%';
+    pip.style.top = pct[Math.floor(slot / 3)] + '%';
     el.appendChild(pip);
   });
 }
