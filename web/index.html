@@ -48,31 +48,39 @@
 
     <!-- GAME -->
     <section class="panel" id="gamePanel" hidden>
-      <div class="scoreboard">
-        <div class="score big-score">
+      <div class="hero">
+        <div class="hero-stats">
+          <div class="mini"><span class="score-label">Won</span><span class="score-val pos" id="scWins">$0</span></div>
+          <div class="mini"><span class="score-label">Lost</span><span class="score-val neg" id="scLosses">$0</span></div>
+        </div>
+
+        <div class="hero-bank">
           <span class="score-label">Bankroll</span>
           <span class="score-val" id="scBankroll">$1,000</span>
           <span class="score-delta" id="scNet"></span>
+          <span class="wagered"><span class="score-label">Wagered</span> <b id="scWagered">$0</b></span>
         </div>
-        <div class="score"><span class="score-label">Rolls</span><span class="score-val" id="scRolls">0</span></div>
-        <div class="score"><span class="score-label">Won</span><span class="score-val pos" id="scWins">$0</span></div>
-        <div class="score"><span class="score-label">Lost</span><span class="score-val neg" id="scLosses">$0</span></div>
-        <div class="score"><span class="score-label">Wagered</span><span class="score-val" id="scWagered">$0</span></div>
-        <div class="score strikes">
-          <span class="score-label">Strikes</span>
-          <span class="pips" id="scStrikes"><i></i><i></i><i></i></span>
+
+        <div class="hero-dice">
+          <div class="dice" id="dice">
+            <div class="die" id="die1" data-face="1"></div>
+            <div class="die" id="die2" data-face="1"></div>
+          </div>
+          <div class="dice-meta">
+            <span class="roll-sum" id="rollSum">—</span>
+            <span class="rolls"><b id="scRolls">0</b> rolls</span>
+          </div>
         </div>
       </div>
 
-      <div class="table-felt">
-        <div class="dice" id="dice">
-          <div class="die" id="die1" data-face="1"></div>
-          <div class="die" id="die2" data-face="1"></div>
-        </div>
-        <div class="roll-sum" id="rollSum">—</div>
+      <div class="statusbar">
         <div class="points">
-          <span class="points-label">Points working</span>
+          <span class="points-label">Points</span>
           <div class="point-chips" id="pointChips"><span class="muted">none yet</span></div>
+        </div>
+        <div class="strikes">
+          <span class="score-label">Strikes</span>
+          <span class="pips" id="scStrikes"><i></i><i></i><i></i></span>
         </div>
       </div>
 
