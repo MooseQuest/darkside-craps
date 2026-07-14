@@ -167,15 +167,45 @@ async function refreshAuth() {
   if (auth.authenticated) $('whoamiEmail').textContent = auth.email;
 }
 
-function openAuth() { $('authError').hidden = true; $('authModal').hidden = false; $('email').focus(); }
-function closeAuth() { $('authModal').hidden = true; }
+function openAuth() { resetAuthSteps(); $('authModal').hidden = false; $('email').focus(); }
+function closeAuth() { $('authModal').hidden = true; resetAuthSteps(); }
 function authErr(msg) { const e = $('authError'); e.textContent = msg; e.hidden = false; }
 
-async function registerPasskey() {
+// Reset the modal to its first step (email + register/login actions).
+function resetAuthSteps() {
+  $('authError').hidden = true;
+  $('authActions').hidden = false;
+  $('codeField').hidden = true;
+  $('codeActions').hidden = true;
+  $('email').readOnly = false;
+  $('code').value = '';
+}
+
+// Step 1 of registration: request a verification code. If the server has email
+// verification disabled it returns sent=false and we go straight to the passkey.
+async function startRegister() {
   const email = $('email').value.trim();
   if (!email) return authErr('Enter your email first.');
+  $('authError').hidden = true;
   try {
-    const opts = await api('/auth/register/begin', { method: 'POST', body: { email } });
+    const res = await api('/auth/register/send-code', { method: 'POST', body: { email } });
+    if (res.sent) {
+      $('authActions').hidden = true;
+      $('codeField').hidden = false;
+      $('codeActions').hidden = false;
+      $('codeHint').textContent = `We emailed a 6-digit code to ${email}. Enter it to finish.`;
+      $('email').readOnly = true;
+      $('code').focus();
+    } else {
+      await registerPasskey(email, '');
+    }
+  } catch (e) { authErr(friendly(e)); }
+}
+
+// Step 2: create the passkey, sending the code (empty when verification is off).
+async function registerPasskey(email, code) {
+  try {
+    const opts = await api('/auth/register/begin', { method: 'POST', body: { email, code } });
     const pk = opts.publicKey;
     pk.challenge = b64urlToBuf(pk.challenge);
     pk.user.id = b64urlToBuf(pk.user.id);
@@ -314,7 +344,9 @@ function wire() {
   $('startSignInLink').addEventListener('click', (e) => { e.preventDefault(); openAuth(); });
   $('saveSignInBtn').addEventListener('click', openAuth);
   $('authClose').addEventListener('click', closeAuth);
-  $('passkeyRegisterBtn').addEventListener('click', registerPasskey);
+  $('passkeyRegisterBtn').addEventListener('click', startRegister);
+  $('verifyCreateBtn').addEventListener('click', () => registerPasskey($('email').value.trim(), $('code').value.trim()));
+  $('codeBackBtn').addEventListener('click', resetAuthSteps);
   $('passkeyLoginBtn').addEventListener('click', loginPasskey);
   $('signOutBtn').addEventListener('click', signOut);
   $('historyBtn').addEventListener('click', openHistory);

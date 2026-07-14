@@ -124,6 +124,62 @@ func TestRateLimiter(t *testing.T) {
 	}
 }
 
+func TestGenCode(t *testing.T) {
+	for i := 0; i < 50; i++ {
+		c, err := genCode()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(c) != 6 {
+			t.Fatalf("code len %d: %q", len(c), c)
+		}
+		for _, r := range c {
+			if r < '0' || r > '9' {
+				t.Fatalf("non-digit in %q", c)
+			}
+		}
+	}
+}
+
+func TestHashCodeBinding(t *testing.T) {
+	a := testApp()
+	h := a.hashCode("a@b.com", "123456")
+	if h != a.hashCode("a@b.com", "123456") {
+		t.Fatal("hash not deterministic")
+	}
+	if h == a.hashCode("a@b.com", "654321") {
+		t.Fatal("different code produced same hash")
+	}
+	if h == a.hashCode("x@y.com", "123456") {
+		t.Fatal("different email produced same hash")
+	}
+	if h != a.hashCode("a@b.com", "  123456 ") {
+		t.Fatal("surrounding whitespace should be trimmed")
+	}
+	other := &App{cfg: Config{SessionSecret: []byte("other")}}
+	if h == other.hashCode("a@b.com", "123456") {
+		t.Fatal("hash must depend on the server secret")
+	}
+}
+
+func TestFromAddress(t *testing.T) {
+	if got := fromAddress("Dark Side Craps <no-reply@moosequest.app>"); got != "no-reply@moosequest.app" {
+		t.Fatalf("bracketed form: %q", got)
+	}
+	if got := fromAddress("plain@x.com"); got != "plain@x.com" {
+		t.Fatalf("plain form: %q", got)
+	}
+}
+
+func TestVerifyEmailToggle(t *testing.T) {
+	if (Config{}).verifyEmail() {
+		t.Fatal("no SMTP host should disable verification")
+	}
+	if !(Config{SMTPHost: "smtp.example.com"}).verifyEmail() {
+		t.Fatal("SMTP host should enable verification")
+	}
+}
+
 func TestClientIPUsesLastForwardedFor(t *testing.T) {
 	r := httptest.NewRequest(http.MethodGet, "/", nil)
 	// Heroku appends the real client IP last; spoofed entries come first.

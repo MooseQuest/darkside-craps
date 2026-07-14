@@ -21,6 +21,7 @@ type Store struct {
 	creds    *mongo.Collection
 	waSess   *mongo.Collection // in-flight WebAuthn ceremony data, keyed by email
 	sessions *mongo.Collection // saved game summaries
+	verifs   *mongo.Collection // pending email-verification codes, keyed by email
 }
 
 func NewStore(ctx context.Context, cfg Config) (*Store, error) {
@@ -38,6 +39,7 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 		creds:    db.Collection("credentials"),
 		waSess:   db.Collection("wa_sessions"),
 		sessions: db.Collection("game_sessions"),
+		verifs:   db.Collection("email_verifications"),
 	}
 	// Best-effort indexes.
 	_, _ = s.users.Indexes().CreateOne(ctx, mongo.IndexModel{
@@ -50,6 +52,10 @@ func NewStore(ctx context.Context, cfg Config) (*Store, error) {
 	// accumulate documents indefinitely.
 	_, _ = s.waSess.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{{Key: "created_at", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(600),
+	})
+	// Verification codes expire exactly at their expires_at time (TTL 0).
+	_, _ = s.verifs.Indexes().CreateOne(ctx, mongo.IndexModel{
+		Keys: bson.D{{Key: "expires_at", Value: 1}}, Options: options.Index().SetExpireAfterSeconds(0),
 	})
 	return s, nil
 }
@@ -181,6 +187,44 @@ func (s *Store) TakeWASession(ctx context.Context, email string) (*webauthn.Sess
 		return nil, nil, err
 	}
 	return &doc.Data, doc.Handle, nil
+}
+
+// ---- Email verification codes ---------------------------------------------
+
+type verifyDoc struct {
+	Email     string    `bson:"email"`
+	CodeHash  string    `bson:"code_hash"`
+	ExpiresAt time.Time `bson:"expires_at"`
+	CreatedAt time.Time `bson:"created_at"`
+}
+
+// SaveVerification stores (or replaces) the pending code hash for an email.
+func (s *Store) SaveVerification(ctx context.Context, email, codeHash string, ttl time.Duration) error {
+	now := time.Now().UTC()
+	_, err := s.verifs.UpdateOne(ctx,
+		bson.M{"email": email},
+		bson.M{"$set": verifyDoc{Email: email, CodeHash: codeHash, ExpiresAt: now.Add(ttl), CreatedAt: now}},
+		options.Update().SetUpsert(true),
+	)
+	return err
+}
+
+// ConsumeVerification atomically checks a code hash for an email and deletes it
+// (single-use). Returns true only for a matching, unexpired code.
+func (s *Store) ConsumeVerification(ctx context.Context, email, codeHash string) (bool, error) {
+	var doc verifyDoc
+	err := s.verifs.FindOneAndDelete(ctx, bson.M{
+		"email":      email,
+		"code_hash":  codeHash,
+		"expires_at": bson.M{"$gt": time.Now().UTC()},
+	}).Decode(&doc)
+	if err == mongo.ErrNoDocuments {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // ---- Game history ----------------------------------------------------------
