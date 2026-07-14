@@ -21,6 +21,12 @@ func securityHeaders(next http.Handler) http.Handler {
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Cross-Origin-Opener-Policy", "same-origin")
+		// HSTS only over HTTPS (TLS terminates at the Heroku router, so the
+		// scheme is in X-Forwarded-Proto). No includeSubDomains — this host must
+		// not force HSTS on sibling *.moosequest.app subdomains.
+		if r.Header.Get("X-Forwarded-Proto") == "https" {
+			h.Set("Strict-Transport-Security", "max-age=31536000")
+		}
 		next.ServeHTTP(w, r)
 	})
 }
