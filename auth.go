@@ -1,11 +1,36 @@
 package main
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"fmt"
+	"math/big"
 	"net/http"
 	"strings"
+	"time"
 )
+
+const verifyCodeTTL = 10 * time.Minute
+
+// genCode returns a cryptographically-random 6-digit code.
+func genCode() (string, error) {
+	n, err := rand.Int(rand.Reader, big.NewInt(1_000_000))
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%06d", n.Int64()), nil
+}
+
+// hashCode binds the code to the email under the server secret so plaintext
+// codes are never stored.
+func (a *App) hashCode(email, code string) string {
+	m := hmac.New(sha256.New, a.cfg.SessionSecret)
+	m.Write([]byte(email + "|" + strings.TrimSpace(code)))
+	return hex.EncodeToString(m.Sum(nil))
+}
 
 // validEmail is intentionally strict: exactly one '@', no surrounding '@', and
 // no whitespace, control characters, or '|' (the session-payload delimiter).
@@ -40,8 +65,46 @@ func (a *App) handleMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"authenticated": true, "email": email})
 }
 
-func (a *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
+// handleRegisterSendCode emails a one-time verification code for signup. When
+// email verification is disabled (no SMTP configured), it reports sent=false so
+// the client proceeds straight to the passkey step.
+func (a *App) handleRegisterSendCode(w http.ResponseWriter, r *http.Request) {
 	var req emailReq
+	if err := readJSON(r, &req); err != nil || !validEmail(req.Email) {
+		writeErr(w, http.StatusBadRequest, "a valid email is required")
+		return
+	}
+	if !a.cfg.verifyEmail() {
+		writeJSON(w, http.StatusOK, map[string]any{"sent": false})
+		return
+	}
+	email := normEmail(req.Email)
+	ctx, cancel := reqCtx(r)
+	defer cancel()
+
+	code, err := genCode()
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not generate code")
+		return
+	}
+	if err := a.store.SaveVerification(ctx, email, a.hashCode(email, code), verifyCodeTTL); err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not start verification")
+		return
+	}
+	if err := a.sendVerificationEmail(email, code); err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not send the verification email")
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"sent": true})
+}
+
+type registerBeginReq struct {
+	Email string `json:"email"`
+	Code  string `json:"code"`
+}
+
+func (a *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
+	var req registerBeginReq
 	if err := readJSON(r, &req); err != nil || !validEmail(req.Email) {
 		writeErr(w, http.StatusBadRequest, "a valid email is required")
 		return
@@ -49,6 +112,20 @@ func (a *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 	email := normEmail(req.Email)
 	ctx, cancel := reqCtx(r)
 	defer cancel()
+
+	// Require a valid, single-use emailed code before issuing a challenge, so a
+	// passkey can only be registered against an email the caller controls.
+	if a.cfg.verifyEmail() {
+		ok, err := a.store.ConsumeVerification(ctx, email, a.hashCode(email, req.Code))
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, "could not verify the code")
+			return
+		}
+		if !ok {
+			writeErr(w, http.StatusBadRequest, "invalid or expired verification code")
+			return
+		}
+	}
 
 	// Do NOT create the user yet — only persist on a successful finish.
 	existing, err := a.store.GetUser(ctx, email)

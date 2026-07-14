@@ -57,6 +57,10 @@ cd web && node --test    # craps engine: every transition, strikes, seven-out
 | `RP_ORIGIN` | Full origin (`https://craps.moosequest.app`) |
 | `MONGO_DB` | Database name (default `craps_game`) |
 | `PORT` | Listen port (default `8080`; set by Heroku) |
+| `SMTP_HOST` | Transactional-email relay host. **When set, signup email-verification is enforced** (an emailed 6-digit code is required before a passkey can be created). Unset ⇒ open registration (dev). |
+| `SMTP_PORT` | SMTP submission port (default `587`) |
+| `SMTP_USERNAME` / `SMTP_PASSWORD` | SMTP auth (optional; PLAIN over STARTTLS) |
+| `MAIL_FROM` | From address (default `Dark Side Craps <no-reply@moosequest.app>`) |
 
 Secrets are sourced from the **mqcraps** project in the vault (vault.raxx.app); see
 `.vault.toml`. On Heroku they are injected as config vars.

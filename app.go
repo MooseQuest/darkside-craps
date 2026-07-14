@@ -52,6 +52,7 @@ func (a *App) routes(mux *http.ServeMux) {
 
 	// Auth.
 	mux.HandleFunc("/auth/me", a.handleMe)
+	mux.HandleFunc("/auth/register/send-code", a.postOnly(a.handleRegisterSendCode))
 	mux.HandleFunc("/auth/register/begin", a.postOnly(a.handleRegisterBegin))
 	mux.HandleFunc("/auth/register/finish", a.postOnly(a.handleRegisterFinish))
 	mux.HandleFunc("/auth/login/begin", a.postOnly(a.handleLoginBegin))

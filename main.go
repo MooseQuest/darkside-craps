@@ -23,7 +23,18 @@ type Config struct {
 	RPID          string // WebAuthn Relying Party ID (the domain), e.g. craps.moosequest.app
 	RPOrigin      string // full origin, e.g. https://craps.moosequest.app
 	DBName        string
+
+	// SMTP for signup email-verification. When SMTPHost is empty, verification
+	// is disabled and registration proceeds without an emailed code (dev).
+	SMTPHost string
+	SMTPPort string
+	SMTPUser string
+	SMTPPass string
+	MailFrom string
 }
+
+// verifyEmail reports whether signup email-verification is enabled.
+func (c Config) verifyEmail() bool { return c.SMTPHost != "" }
 
 func loadConfig() Config {
 	port := getenv("PORT", "8080")
@@ -34,6 +45,11 @@ func loadConfig() Config {
 		RPID:          getenv("RP_ID", "localhost"),
 		RPOrigin:      getenv("RP_ORIGIN", "http://localhost:"+port),
 		DBName:        getenv("MONGO_DB", "craps_game"),
+		SMTPHost:      os.Getenv("SMTP_HOST"),
+		SMTPPort:      getenv("SMTP_PORT", "587"),
+		SMTPUser:      os.Getenv("SMTP_USERNAME"),
+		SMTPPass:      os.Getenv("SMTP_PASSWORD"),
+		MailFrom:      getenv("MAIL_FROM", "Dark Side Craps <no-reply@moosequest.app>"),
 	}
 }
 
@@ -84,7 +100,7 @@ func main() {
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	log.Printf("listening on :%s (rp_id=%s origin=%s)", cfg.Port, cfg.RPID, cfg.RPOrigin)
+	log.Printf("listening on :%s (rp_id=%s origin=%s email_verification=%t)", cfg.Port, cfg.RPID, cfg.RPOrigin, cfg.verifyEmail())
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
