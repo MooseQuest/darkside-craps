@@ -127,26 +127,25 @@ func (a *App) handleRegisterBegin(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Do NOT create the user yet — only persist on a successful finish.
-	existing, err := a.store.GetUser(ctx, email)
-	var user *User
-	var handle []byte
-	switch {
-	case err == nil:
-		user = existing
-		handle = existing.handle
-	case err == errNotFound:
-		h, herr := newHandle()
-		if herr != nil {
-			writeErr(w, http.StatusInternalServerError, "could not start registration")
-			return
-		}
-		handle = h
-		user = &User{email: email, handle: handle}
-	default:
+	// Signup is for NEW accounts only. If the email already has a passkey, refuse
+	// and steer to sign-in — adding another passkey is an authenticated action
+	// (/auth/passkey/add/*). This is reached only after a valid emailed code, so
+	// it doesn't leak account existence to an attacker.
+	_, err := a.store.GetUser(ctx, email)
+	if err == nil {
+		writeErr(w, http.StatusConflict, "This email already has a passkey — sign in instead.")
+		return
+	}
+	if err != errNotFound {
 		writeErr(w, http.StatusInternalServerError, "could not load account")
 		return
 	}
+	handle, herr := newHandle()
+	if herr != nil {
+		writeErr(w, http.StatusInternalServerError, "could not start registration")
+		return
+	}
+	user := &User{email: email, handle: handle}
 
 	options, session, err := a.wa.BeginRegistration(user)
 	if err != nil {
@@ -200,6 +199,66 @@ func (a *App) handleRegisterFinish(w http.ResponseWriter, r *http.Request) {
 	}
 	a.clearCookie(w, ceremonyCookie)
 	a.setSession(w, email)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "email": email})
+}
+
+// handleAddPasskeyBegin starts adding an additional passkey to the currently
+// signed-in account (multi-device). No email code — the session proves identity,
+// and BeginRegistration excludes the credentials already on the account.
+func (a *App) handleAddPasskeyBegin(w http.ResponseWriter, r *http.Request) {
+	email := a.currentEmail(r)
+	if email == "" {
+		writeErr(w, http.StatusUnauthorized, "sign in first")
+		return
+	}
+	ctx, cancel := reqCtx(r)
+	defer cancel()
+	user, err := a.store.GetUser(ctx, email)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not load account")
+		return
+	}
+	options, session, err := a.wa.BeginRegistration(user)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not start")
+		return
+	}
+	if err := a.store.SaveWASession(ctx, email, session, user.handle); err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not persist ceremony")
+		return
+	}
+	a.setCeremony(w, email)
+	writeJSON(w, http.StatusOK, options)
+}
+
+func (a *App) handleAddPasskeyFinish(w http.ResponseWriter, r *http.Request) {
+	email := a.currentEmail(r)
+	if email == "" {
+		writeErr(w, http.StatusUnauthorized, "sign in first")
+		return
+	}
+	ctx, cancel := reqCtx(r)
+	defer cancel()
+	session, _, err := a.store.TakeWASession(ctx, email)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "session expired — start over")
+		return
+	}
+	user, err := a.store.GetUser(ctx, email)
+	if err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not load account")
+		return
+	}
+	cred, err := a.wa.FinishRegistration(user, *session, r)
+	if err != nil {
+		writeErr(w, http.StatusBadRequest, "could not add passkey")
+		return
+	}
+	if err := a.store.AddCredential(ctx, email, cred); err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not save passkey")
+		return
+	}
+	a.clearCookie(w, ceremonyCookie)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "email": email})
 }
 
