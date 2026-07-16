@@ -290,6 +290,16 @@ async function addPasskey() {
 
 async function signOut() { try { await api('/auth/logout', { method: 'POST' }); } catch {} await refreshAuth(); }
 
+async function deleteAccount() {
+  if (!confirm('Delete your account? This permanently removes your email, passkeys, and saved game history, and cannot be undone.')) return;
+  try {
+    await api('/auth/account/delete', { method: 'POST' });
+    await refreshAuth();
+    show('startPanel');
+    alert('Your account and all its data have been deleted.');
+  } catch (e) { alert('Could not delete account: ' + (e && e.message || e)); }
+}
+
 // ---- History ---------------------------------------------------------------
 // el builds a DOM node with a text child — never interpolates untrusted data
 // into HTML, so server values can't become markup.
@@ -384,6 +394,7 @@ function wire() {
   $('passkeyLoginBtn').addEventListener('click', loginPasskey);
   $('signOutBtn').addEventListener('click', signOut);
   $('addPasskeyBtn').addEventListener('click', addPasskey);
+  $('deleteAccountBtn').addEventListener('click', deleteAccount);
   $('historyBtn').addEventListener('click', openHistory);
   $('historyCloseBtn').addEventListener('click', () => show('startPanel'));
 

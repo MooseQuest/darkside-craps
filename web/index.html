@@ -24,6 +24,7 @@
         <button class="btn ghost tiny" id="addPasskeyBtn">+ Passkey</button>
         <button class="btn ghost tiny" id="historyBtn">History</button>
         <button class="btn ghost tiny" id="signOutBtn">Sign out</button>
+        <button class="btn ghost tiny danger" id="deleteAccountBtn">Delete account</button>
       </div>
     </div>
   </header>
@@ -124,6 +125,10 @@
     </section>
   </main>
 
+  <footer class="site-foot">
+    For fun only — not gambling. <a href="/terms">Terms of Use</a> · <a href="/privacy">Privacy Policy</a>
+  </footer>
+
   <!-- AUTH MODAL -->
   <div class="modal-backdrop" id="authModal" hidden>
     <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
@@ -147,6 +152,7 @@
         <button class="btn primary" id="verifyCreateBtn">Verify &amp; create passkey</button>
         <button class="btn ghost" id="codeBackBtn">Start over</button>
       </div>
+      <p class="lede small">By continuing you agree to our <a href="/terms">Terms</a> &amp; <a href="/privacy">Privacy Policy</a>.</p>
       <p class="auth-error" id="authError" hidden></p>
     </div>
   </div>

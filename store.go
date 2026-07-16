@@ -151,6 +151,18 @@ func (s *Store) AddCredential(ctx context.Context, email string, c *webauthn.Cre
 	return err
 }
 
+// DeleteAccount permanently removes the user and everything tied to their email:
+// credentials, saved games, in-flight ceremonies, and verification codes.
+func (s *Store) DeleteAccount(ctx context.Context, email string) error {
+	for _, c := range []*mongo.Collection{s.creds, s.sessions, s.waSess, s.verifs} {
+		if _, err := c.DeleteMany(ctx, bson.M{"email": email}); err != nil {
+			return err
+		}
+	}
+	_, err := s.users.DeleteOne(ctx, bson.M{"email": email})
+	return err
+}
+
 // UpdateCredential bumps the stored sign counter after a successful login.
 func (s *Store) UpdateCredential(ctx context.Context, email string, c *webauthn.Credential) error {
 	_, err := s.creds.UpdateOne(ctx,
