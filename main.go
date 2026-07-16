@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-//go:embed web/index.html web/app.js web/engine.js web/styles.css
+//go:embed web/index.html web/app.js web/engine.js web/styles.css web/privacy.html web/terms.html
 var webFS embed.FS
 
 // Config is resolved from the environment (Heroku config vars / rvault).

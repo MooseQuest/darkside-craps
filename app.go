@@ -49,6 +49,8 @@ func (a *App) routes(mux *http.ServeMux) {
 	mux.HandleFunc("/app.js", a.serveAsset("web/app.js", "text/javascript; charset=utf-8"))
 	mux.HandleFunc("/engine.js", a.serveAsset("web/engine.js", "text/javascript; charset=utf-8"))
 	mux.HandleFunc("/styles.css", a.serveAsset("web/styles.css", "text/css; charset=utf-8"))
+	mux.HandleFunc("/privacy", a.serveAsset("web/privacy.html", "text/html; charset=utf-8"))
+	mux.HandleFunc("/terms", a.serveAsset("web/terms.html", "text/html; charset=utf-8"))
 
 	// Auth.
 	mux.HandleFunc("/auth/me", a.handleMe)
@@ -60,6 +62,7 @@ func (a *App) routes(mux *http.ServeMux) {
 	mux.HandleFunc("/auth/logout", a.postOnly(a.handleLogout))
 	mux.HandleFunc("/auth/passkey/add/begin", a.postOnly(a.handleAddPasskeyBegin))
 	mux.HandleFunc("/auth/passkey/add/finish", a.postOnly(a.handleAddPasskeyFinish))
+	mux.HandleFunc("/auth/account/delete", a.postOnly(a.handleDeleteAccount))
 
 	// Game history (auth required).
 	mux.HandleFunc("/api/sessions", a.postOnly(a.handleSaveSession))

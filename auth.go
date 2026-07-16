@@ -358,3 +358,22 @@ func (a *App) handleLogout(w http.ResponseWriter, r *http.Request) {
 	a.clearCookie(w, sessionCookie)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
+
+// handleDeleteAccount permanently deletes the signed-in user's account and all
+// associated data, then clears the session.
+func (a *App) handleDeleteAccount(w http.ResponseWriter, r *http.Request) {
+	email := a.currentEmail(r)
+	if email == "" {
+		writeErr(w, http.StatusUnauthorized, "sign in first")
+		return
+	}
+	ctx, cancel := reqCtx(r)
+	defer cancel()
+	if err := a.store.DeleteAccount(ctx, email); err != nil {
+		writeErr(w, http.StatusInternalServerError, "could not delete account")
+		return
+	}
+	a.clearCookie(w, sessionCookie)
+	a.clearCookie(w, ceremonyCookie)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
