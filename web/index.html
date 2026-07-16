@@ -21,6 +21,7 @@
       <button class="btn ghost" id="signInBtn" hidden>Sign in</button>
       <div class="whoami" id="whoami" hidden>
         <span class="dot"></span><span id="whoamiEmail"></span>
+        <button class="btn ghost tiny" id="addPasskeyBtn">+ Passkey</button>
         <button class="btn ghost tiny" id="historyBtn">History</button>
         <button class="btn ghost tiny" id="signOutBtn">Sign out</button>
       </div>
@@ -128,7 +129,7 @@
     <div class="modal card" role="dialog" aria-modal="true" aria-labelledby="authTitle">
       <button class="modal-x" id="authClose" aria-label="Close">✕</button>
       <h2 class="title" id="authTitle">Sign in with a passkey</h2>
-      <p class="lede small">Enter your email. We'll create or use a passkey on this device — no passwords.</p>
+      <p class="lede small">Enter your email to sign in — or create an account. No passwords.</p>
       <div class="field">
         <label for="email">Email</label>
         <input type="email" id="email" inputmode="email" autocomplete="username webauthn" placeholder="you@example.com" />
@@ -139,8 +140,8 @@
         <p class="lede small" id="codeHint"></p>
       </div>
       <div class="btn-row" id="authActions">
-        <button class="btn primary" id="passkeyRegisterBtn">Create passkey</button>
-        <button class="btn" id="passkeyLoginBtn">Use existing passkey</button>
+        <button class="btn primary" id="passkeyLoginBtn">Sign in</button>
+        <button class="btn ghost" id="passkeyRegisterBtn">Create account</button>
       </div>
       <div class="btn-row" id="codeActions" hidden>
         <button class="btn primary" id="verifyCreateBtn">Verify &amp; create passkey</button>

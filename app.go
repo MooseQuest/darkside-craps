@@ -58,6 +58,8 @@ func (a *App) routes(mux *http.ServeMux) {
 	mux.HandleFunc("/auth/login/begin", a.postOnly(a.handleLoginBegin))
 	mux.HandleFunc("/auth/login/finish", a.postOnly(a.handleLoginFinish))
 	mux.HandleFunc("/auth/logout", a.postOnly(a.handleLogout))
+	mux.HandleFunc("/auth/passkey/add/begin", a.postOnly(a.handleAddPasskeyBegin))
+	mux.HandleFunc("/auth/passkey/add/finish", a.postOnly(a.handleAddPasskeyFinish))
 
 	// Game history (auth required).
 	mux.HandleFunc("/api/sessions", a.postOnly(a.handleSaveSession))

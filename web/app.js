@@ -220,7 +220,15 @@ async function registerPasskey(email, code) {
       clientExtensionResults: cred.getClientExtensionResults(),
     } });
     closeAuth(); await refreshAuth();
-  } catch (e) { authErr(friendly(e)); }
+  } catch (e) {
+    // Account already exists: drop back to the email step so "Sign in" is offered.
+    if (/already has a passkey/i.test(String(e && e.message || e))) {
+      resetAuthSteps();
+      authErr('You already have a passkey for this email — tap Sign in.');
+      return;
+    }
+    authErr(friendly(e));
+  }
 }
 
 async function loginPasskey() {
@@ -248,10 +256,36 @@ async function loginPasskey() {
 
 function friendly(e) {
   const m = String(e && e.message || e);
-  if (/NotAllowed/i.test(m)) return 'Passkey prompt was dismissed. Try again.';
-  if (/already/i.test(m)) return 'That email already has a passkey — use "Use existing passkey".';
-  if (/no credential|not found/i.test(m)) return 'No passkey found for that email. Create one first.';
+  if (/already has a passkey/i.test(m)) return 'You already have a passkey for this email — tap Sign in.';
+  if (/NotAllowed/i.test(m)) return 'No passkey was used. New here? Tap Create account.';
+  if (/no passkey found/i.test(m)) return 'No passkey found for that email. Tap Create account.';
   return m;
+}
+
+// Add another passkey to the signed-in account (multi-device). No email code —
+// the session proves identity; the browser blocks duplicates on the same device.
+async function addPasskey() {
+  try {
+    const opts = await api('/auth/passkey/add/begin', { method: 'POST' });
+    const pk = opts.publicKey;
+    pk.challenge = b64urlToBuf(pk.challenge);
+    pk.user.id = b64urlToBuf(pk.user.id);
+    (pk.excludeCredentials || []).forEach((c) => (c.id = b64urlToBuf(c.id)));
+    const cred = await navigator.credentials.create({ publicKey: pk });
+    await api('/auth/passkey/add/finish', { method: 'POST', body: {
+      id: cred.id, rawId: bufToB64url(cred.rawId), type: cred.type,
+      response: {
+        attestationObject: bufToB64url(cred.response.attestationObject),
+        clientDataJSON: bufToB64url(cred.response.clientDataJSON),
+      },
+      clientExtensionResults: cred.getClientExtensionResults(),
+    } });
+    alert('Passkey added to this account.');
+  } catch (e) {
+    const m = String(e && e.message || e);
+    if (/InvalidState|already registered|exclude/i.test(m)) { alert('This device already has a passkey for your account.'); return; }
+    alert('Could not add passkey: ' + friendly(e));
+  }
 }
 
 async function signOut() { try { await api('/auth/logout', { method: 'POST' }); } catch {} await refreshAuth(); }
@@ -349,6 +383,7 @@ function wire() {
   $('codeBackBtn').addEventListener('click', resetAuthSteps);
   $('passkeyLoginBtn').addEventListener('click', loginPasskey);
   $('signOutBtn').addEventListener('click', signOut);
+  $('addPasskeyBtn').addEventListener('click', addPasskey);
   $('historyBtn').addEventListener('click', openHistory);
   $('historyCloseBtn').addEventListener('click', () => show('startPanel'));
 
