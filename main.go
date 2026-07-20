@@ -12,8 +12,11 @@ import (
 	"time"
 )
 
-//go:embed web/index.html web/app.js web/engine.js web/styles.css web/privacy.html web/terms.html
+//go:embed web/index.html web/app.js web/engine.js web/styles.css web/privacy.html web/terms.html web/blocked.html
 var webFS embed.FS
+
+//go:embed geo/dbip-country-lite.mmdb
+var geoDB []byte
 
 // Config is resolved from the environment (Heroku config vars / rvault).
 type Config struct {
@@ -31,6 +34,9 @@ type Config struct {
 	SMTPUser string
 	SMTPPass string
 	MailFrom string
+
+	// Comma-separated ISO-3166 alpha-2 country codes to geo-block. Empty = off.
+	BlockedCountries string
 }
 
 // verifyEmail reports whether signup email-verification is enabled.
@@ -50,6 +56,7 @@ func loadConfig() Config {
 		SMTPUser:      os.Getenv("SMTP_USERNAME"),
 		SMTPPass:      os.Getenv("SMTP_PASSWORD"),
 		MailFrom:      getenv("MAIL_FROM", "Dark Side Craps <no-reply@moosequest.app>"),
+		BlockedCountries: os.Getenv("BLOCKED_COUNTRIES"),
 	}
 }
 
@@ -91,9 +98,15 @@ func main() {
 	mux := http.NewServeMux()
 	app.routes(mux)
 
+	gb, err := newGeoBlocker(geoDB, cfg.BlockedCountries)
+	if err != nil {
+		log.Fatalf("geoip: %v", err)
+	}
+	log.Printf("geo-block: enabled=%t countries=%q", gb.enabled(), cfg.BlockedCountries)
+
 	// 60 auth/api requests per minute per client IP.
 	rl := newRateLimiter(60, time.Minute)
-	handler := logRequests(securityHeaders(rateLimit(rl, limitBody(mux))))
+	handler := logRequests(securityHeaders(geoBlock(gb, rateLimit(rl, limitBody(mux)))))
 
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,

@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Effective date: July 16, 2026**
+**Effective date: July 20, 2026**
 
 _This is a plain-language terms of use document for a small, free hobby app. It is not legal advice._
 
@@ -24,9 +24,17 @@ Dark Side Craps (https://craps.moosequest.app) is operated by **MooseQuest LLC**
 
 ## 3. Eligibility
 
-You must be at least **18 years old** (or the age of majority in your jurisdiction, if higher) to create an account and use this app. By using the app you represent that you meet this requirement.
+You must meet the minimum age for your location to use this app:
 
-This app is not directed to anyone under the age of 13 and we do not knowingly collect data from minors. See our Privacy Policy for details.
+- **Australia:** you must be 18 or older.
+- **European Union / EEA:** you must be 16 or older (or the digital-consent age set by your country's law, with parental consent where a younger age is permitted with consent).
+- **Everywhere else:** you must be 13 or older.
+
+By using the app you represent that you meet the age requirement that applies to you. This app is not directed to, and may not be used by, anyone under the applicable minimum age. We do not knowingly collect personal data from children under 13; see our Privacy Policy.
+
+## 3a. Geographic restrictions
+
+This service is not available in certain jurisdictions where local law prohibits simulated casino content or gambling-themed entertainment, regardless of whether real money is involved. If you access this service from a prohibited jurisdiction, you do so in violation of these Terms and at your own risk. We reserve the right to block access by region at any time.
 
 ---
 

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective date: July 16, 2026**
+**Effective date: July 20, 2026**
 
 _This is a plain-language privacy policy for a small, free hobby app. It is not legal advice._
 
@@ -82,7 +82,7 @@ Each vendor has its own privacy practices. We encourage you to review them if yo
 
 ## Children
 
-This app is not directed to children under **13**. We do not knowingly collect personal data from anyone below that age. If you believe a child has created an account, contact us at privacy@moosequest.app and we will delete it promptly.
+This app is not directed to children under **13**, and in line with the U.S. Children's Online Privacy Protection Act (**COPPA**) we do not knowingly collect personal information from children under 13. If you are in the EU/EEA, a higher minimum age (typically 16, or your country's digital-consent age) may apply. If you believe a child under the applicable age has created an account, contact us at privacy@moosequest.app and we will delete it promptly.
 
 ---
 
