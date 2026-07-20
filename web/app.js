@@ -371,6 +371,19 @@ function walkNext() {
 }
 function closeWalk() { localStorage.setItem('walk_done', '1'); $('walkModal').hidden = true; }
 
+// ---- Age gate (first visit) ------------------------------------------------
+function maybeAgeGate() {
+  if (localStorage.getItem('age_ok') === '1') return;
+  $('ageGate').hidden = false;
+}
+function confirmAge() { localStorage.setItem('age_ok', '1'); $('ageGate').hidden = true; }
+function declineAge() {
+  // Keep the gate up (it blocks the app) and show the decline notice.
+  $('ageConfirmBtn').hidden = true;
+  $('ageDeclineBtn').hidden = true;
+  $('ageDeclined').hidden = false;
+}
+
 // ---- Wiring ----------------------------------------------------------------
 function wire() {
   $('bankrollSeg').querySelectorAll('.seg').forEach((b) => b.addEventListener('click', () => {
@@ -400,6 +413,8 @@ function wire() {
 
   $('walkNext').addEventListener('click', walkNext);
   $('walkSkip').addEventListener('click', closeWalk);
+  $('ageConfirmBtn').addEventListener('click', confirmAge);
+  $('ageDeclineBtn').addEventListener('click', declineAge);
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !$('gamePanel').hidden && $('summaryBtn').hidden) doRoll();
@@ -412,4 +427,5 @@ function wire() {
 }
 
 wire();
+maybeAgeGate();
 refreshAuth();
