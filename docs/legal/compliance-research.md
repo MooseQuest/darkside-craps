@@ -479,7 +479,7 @@ in Brazil without parental consent would be unlawful under LGPD Art. 14.
 > entertainment, or similar services, regardless of whether real money is involved.
 >
 > We apologize for the inconvenience. If you believe this is an error, please contact
-> privacy@moosequest.app.
+> privacy@moosequest.net.
 
 ---
 

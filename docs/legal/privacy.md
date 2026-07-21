@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective date: July 20, 2026**
+**Effective date: July 21, 2026**
 
 _This is a plain-language privacy policy for a small, free hobby app. It is not legal advice._
 
@@ -8,7 +8,7 @@ _This is a plain-language privacy policy for a small, free hobby app. It is not 
 
 ## Who we are
 
-Dark Side Craps (available at https://craps.moosequest.app) is operated by **MooseQuest LLC**. We can be reached at **privacy@moosequest.app** for any privacy-related questions.
+Dark Side Craps (available at https://craps.moosequest.app) is operated by **MooseQuest LLC**. We can be reached at **privacy@moosequest.net** for any privacy-related questions.
 
 ---
 
@@ -82,7 +82,9 @@ Each vendor has its own privacy practices. We encourage you to review them if yo
 
 ## Children
 
-This app is not directed to children under **13**, and in line with the U.S. Children's Online Privacy Protection Act (**COPPA**) we do not knowingly collect personal information from children under 13. If you are in the EU/EEA, a higher minimum age (typically 16, or your country's digital-consent age) may apply. If you believe a child under the applicable age has created an account, contact us at privacy@moosequest.app and we will delete it promptly.
+This app is not directed to children under **13**, and in line with the U.S. Children's Online Privacy Protection Act (**COPPA**) we do not knowingly collect personal information from children under 13. If you are in the EU/EEA, a higher minimum age (typically 16, or your country's digital-consent age) may apply. If you believe a child under the applicable age has created an account, contact us at privacy@moosequest.net and we will delete it promptly.
+
+**United Kingdom (Age Appropriate Design Code / "Children's Code").** We have considered the UK's Age Appropriate Design Code. This service carries no advertising, no in-app purchases (nothing is for sale), no behavioural tracking, and none of the engagement-maximising mechanics (loot boxes, rewards, streaks) the Code is chiefly concerned with; its subject matter is adult-oriented craps strategy. On that basis we do not consider the service to be directed to or designed for children, and we apply a minimum age of 13 to UK users. We will reassess this position if the service ever adds advertising, purchases, analytics, or similar features.
 
 ---
 
@@ -91,7 +93,7 @@ This app is not directed to children under **13**, and in line with the U.S. Chi
 Regardless of where you live, you can:
 
 - **Access** your data — contact us and we will tell you what we hold about you.
-- **Delete** your data — use the in-app "Delete account" button (instant) or contact privacy@moosequest.app.
+- **Delete** your data — use the in-app "Delete account" button (instant) or contact privacy@moosequest.net.
 - **Correct** your data — contact us if your email address needs to change.
 
 **If you are in the European Union / European Economic Area / United Kingdom:** You may have additional rights under the GDPR (or UK GDPR), including the right to object to processing, the right to data portability, and the right to lodge a complaint with your local supervisory authority. Our legal basis for processing your data is the performance of the service you signed up for (Art. 6(1)(b) GDPR) and, where required, your consent.
@@ -108,6 +110,6 @@ We may update this policy. If we make material changes, we will update the effec
 
 ## Contact
 
-Privacy questions or requests: **privacy@moosequest.app**
+Privacy questions or requests: **privacy@moosequest.net**
 
 ---
