@@ -61,7 +61,7 @@
 ## Section E — Deletion mechanism
 
 - [x] Confirmed: in-app **"Delete account"** button provides immediate, permanent deletion of email, passkey credentials, and game history. *Verify by testing on this date:* __________.
-- [ ] Confirmed: email-request deletion path (**privacy@moosequest.app**, 30-day SLA) is staffed and monitored. *(Operator to confirm the inbox is actively monitored — see diy-compliance-plan.md action list.)*
+- [ ] Confirmed: email-request deletion path (**privacy@moosequest.net**, 30-day SLA) is staffed and monitored. *(Operator to confirm the inbox is actively monitored — see diy-compliance-plan.md action list.)*
 
 ## Section F — Sign-off
 

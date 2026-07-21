@@ -122,6 +122,6 @@ Any dispute arising from these terms or your use of the app shall be resolved in
 
 ## 13. Contact
 
-Questions about these terms: **privacy@moosequest.app**
+Questions about these terms: **privacy@moosequest.net**
 
 ---
