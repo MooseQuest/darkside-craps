@@ -1,6 +1,6 @@
 # Terms of Use
 
-**Effective date: July 20, 2026**
+**Effective date: July 21, 2026**
 
 _This is a plain-language terms of use document for a small, free hobby app. It is not legal advice._
 
@@ -113,9 +113,9 @@ We may update these terms at any time. Changes take effect when we post the upda
 
 ## 12. Governing law and disputes
 
-These terms are governed by the laws of **the state in which MooseQuest LLC is organized**, without regard to its conflict-of-law provisions.
+These terms are governed by the laws of **the Commonwealth of Pennsylvania**, without regard to its conflict-of-law provisions.
 
-Any dispute arising from these terms or your use of the app shall be resolved in the state and federal courts located in that state. You waive any objection to jurisdiction or venue in those courts.
+Any dispute arising from these terms or your use of the app shall be resolved in the state and federal courts located in the Commonwealth of Pennsylvania. You waive any objection to jurisdiction or venue in those courts.
 
 
 ---

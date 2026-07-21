@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective date: July 20, 2026**
+**Effective date: July 21, 2026**
 
 _This is a plain-language privacy policy for a small, free hobby app. It is not legal advice._
 
@@ -83,6 +83,8 @@ Each vendor has its own privacy practices. We encourage you to review them if yo
 ## Children
 
 This app is not directed to children under **13**, and in line with the U.S. Children's Online Privacy Protection Act (**COPPA**) we do not knowingly collect personal information from children under 13. If you are in the EU/EEA, a higher minimum age (typically 16, or your country's digital-consent age) may apply. If you believe a child under the applicable age has created an account, contact us at privacy@moosequest.app and we will delete it promptly.
+
+**United Kingdom (Age Appropriate Design Code / "Children's Code").** We have considered the UK's Age Appropriate Design Code. This service carries no advertising, no in-app purchases (nothing is for sale), no behavioural tracking, and none of the engagement-maximising mechanics (loot boxes, rewards, streaks) the Code is chiefly concerned with; its subject matter is adult-oriented craps strategy. On that basis we do not consider the service to be directed to or designed for children, and we apply a minimum age of 13 to UK users. We will reassess this position if the service ever adds advertising, purchases, analytics, or similar features.
 
 ---
 
